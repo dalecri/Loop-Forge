@@ -1,0 +1,14 @@
+{
+  "name": "Loop Forge",
+  "short_name": "Loop Forge",
+  "description": "Tap pixel blocks, get music, steal the Strudel code.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1B0F42",
+  "theme_color": "#1B0F42",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
