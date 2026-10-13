@@ -16,7 +16,7 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 - **My Loops**: save named loops on the device, export/import `.json` files
 - **Share links** that carry the whole loop in the URL
 - **Copy code / Open in Strudel**
-- **4 themes**: Neon Night (default), Pocket DMG, Riso Paper (light), Ember
+- **5 themes**: Tactile Studio (default), Neon Night, Pocket DMG, Riso Paper (light), Ember
 - **Settings**: grid size, scanlines, motion (respects reduced-motion by default)
 - **Responsive**: phone (bottom transport dock, 8-step paging), tablet and desktop
 - **Installable PWA** that works offline after the first load (drum samples are cached too)
@@ -50,7 +50,8 @@ Opening `index.html` directly works too, minus the offline service worker. It al
 
 ```
 index.html            page shell
-css/style.css         layout + themes (CSS variables per [data-theme])
+css/style.css         layout + original themes (CSS variables per [data-theme])
+css/studio.css        Tactile Studio hardware styling
 js/app.js             state, rendering, code generation, audio
 js/guide.js           in-app guide + tour text (edit the wording here)
 vendor/strudel-web.js bundled @strudel/web (audio engine)
@@ -61,3 +62,32 @@ sw.js                 offline cache (bump CACHE when shipping changes)
 Adding a theme: copy one of the `[data-theme="…"]` blocks in `css/style.css` and add an entry to `THEMES` in `js/app.js`.
 
 Saved loops from the earlier version (stored under `loopforge.v1`) and old share links still load.
+
+## Tactile Studio
+
+Tactile Studio is the default look, developed on `experiment/tactile-studio` and promoted to `main`.
+
+- Cobalt molded chassis, a dot-matrix sequence display, raised step pads, saturated orange/violet/blue preset keys, and yellow/charcoal/cyan control modules.
+- Real rotary controls: drag **up/down** to adjust, or focus and use arrow keys,
+  Page Up/Down, Home/End. Tempo and swing retain horizontal faders.
+- The screen visualizes note density across all enabled layers in the selected
+  section; it is a pattern preview, not an audio waveform. Its playhead uses the
+  existing Strudel scheduler.
+- Responsive transport dock and eight-step paging on phones.
+- Choose **Tactile Studio** or any original theme in Settings.
+- Studio appearance uses `loopforge.settings.studio`, leaving the original
+  appearance preference intact. Musical state and saved-loop formats are unchanged.
+- `css/studio.css` scopes the hardware treatment to the Studio theme. The service
+  worker includes the new stylesheet with a separate cache version.
+
+### Run the current version locally
+
+```sh
+git fetch origin
+git switch main
+git pull --ff-only
+python3 -m http.server 8000
+```
+
+Open http://localhost:8000. Use a separate browser profile if you want test edits
+to remain separate from other Loop Forge loops stored on the same origin.

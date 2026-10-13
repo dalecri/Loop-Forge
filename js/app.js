@@ -7,7 +7,8 @@
 
   // ── constants ───────────────────────────────────────────────────
   const STORE_KEY = 'loopforge.v1';
-  const SETTINGS_KEY = 'loopforge.settings';
+  // Appearance is isolated on this experiment; musical data remains compatible.
+  const SETTINGS_KEY = 'loopforge.settings.studio';
   const SLOTS_KEY = 'loopforge.slots';
   const VERSION = 'v3';
   const BPM_RANGE = [60, 200, 1];
@@ -131,6 +132,7 @@
   };
 
   const THEMES = [
+    { id: 'studio', name: 'TACTILE STUDIO', sw: ['#1769b3', '#ffcc2e', '#ff681e', '#a387f4', '#45c4d6'] },
     { id: 'neon', name: 'NEON NIGHT', sw: ['#1B0F42', '#FF6EC7', '#A16BFF', '#5CE1E6', '#FFE066'] },
     { id: 'gameboy', name: 'POCKET DMG', sw: ['#0F380F', '#306230', '#8BAC0F', '#9BBC0F', '#E0F8D0'] },
     { id: 'paper', name: 'RISO PAPER', sw: ['#F7F0E4', '#2B2118', '#F2668B', '#3CBCC8', '#F5C243'] },
@@ -227,10 +229,10 @@
 
   let state = makeInitial();
   const ui = {
-    playing: false, loading: false, step: -1, bar: -1, showCode: false, page: 'all', toastTimer: 0, tour: -1, guideTab: 'start',
+    playing: false, loading: false, step: -1, bar: -1, showCode: false, page: 'a', toastTimer: 0, tour: -1, guideTab: 'start',
     undo: [], redo: [], lastCo: { key: null, t: 0 }, gestureSnap: null, taps: []
   };
-  let settings = Object.assign({ theme: 'neon', scanlines: true, motion: 'auto', cells: 'cozy' }, lsGet(SETTINGS_KEY, {}));
+  let settings = Object.assign({ theme: 'studio', scanlines: false, motion: 'auto', cells: 'cozy' }, lsGet(SETTINGS_KEY, {}));
   const narrowMQ = window.matchMedia('(max-width: 600px)');
 
   // ── history / commit ────────────────────────────────────────────
@@ -457,6 +459,7 @@
     return null;
   }
   function paintHead() {
+    paintStudio();
     const g = $('grid');
     if (!g) return;
     if (ui.playing && ui.step >= 0) g.dataset.head = ui.step; else delete g.dataset.head;
@@ -645,14 +648,17 @@
   function meterHTML(key, extraClass = '') {
     const m = meterSpec(key);
     const frac = (m.v - m.rg[0]) / (m.rg[1] - m.rg[0]);
-    return '<div class="meter ' + extraClass + '" role="slider" tabindex="0" data-meter="' + key + '" style="--c:var(--' + m.color + ')"' +
+    const rotary = key.startsWith('p:');
+    return '<div class="meter ' + extraClass + (rotary ? ' rotary' : '') + '" role="slider" tabindex="0" data-meter="' + key + '" style="--c:var(--' + m.color + ');--turn:' + (-135 + frac * 270) + 'deg;--position:' + (frac * 100) + '%"' +
       ' aria-label="' + esc(m.label) + '" aria-valuemin="' + m.rg[0] + '" aria-valuemax="' + m.rg[1] + '" aria-valuenow="' + m.v + '"' +
-      ' aria-valuetext="' + esc(fmt(key, m.v)) + '">' + segsHTML(frac) + '</div>';
+      ' aria-valuetext="' + esc(fmt(key, m.v)) + '" title="' + (rotary && settings.theme === 'studio' ? 'Drag up or down; use arrow keys for fine control' : 'Drag left or right; use arrow keys for fine control') + '">' + segsHTML(frac) + (rotary ? '<span class="dial-face" aria-hidden="true"></span>' : '') + '</div>';
   }
   function patchMeter(el) {
     const key = el.dataset.meter, m = meterSpec(key);
     const frac = (m.v - m.rg[0]) / (m.rg[1] - m.rg[0]);
     el.querySelectorAll('.seg').forEach((s, i) => s.classList.toggle('lit', frac >= (i + 0.5) / METER_SEGS));
+    el.style.setProperty('--turn', (-135 + frac * 270) + 'deg');
+    el.style.setProperty('--position', (frac * 100) + '%');
     el.setAttribute('aria-valuenow', m.v);
     el.setAttribute('aria-valuetext', fmt(key, m.v));
     for (const r of $$('[data-readout="' + key + '"]')) r.textContent = fmt(key, m.v);
@@ -661,7 +667,9 @@
   function meterFromPointer(e) {
     const el = drag.el, m = meterSpec(el.dataset.meter);
     const r = el.getBoundingClientRect();
-    const f = clamp((e.clientX - r.left - 4) / (r.width - 8), 0, 1);
+    const f = drag.rotary
+      ? clamp(drag.start + (drag.y - e.clientY) / 180, 0, 1)
+      : clamp((e.clientX - r.left - 4) / (r.width - 8), 0, 1);
     const v = snap(m.rg[0] + f * (m.rg[1] - m.rg[0]), m.rg);
     if (v === m.v) return;
     m.set(v);
@@ -704,10 +712,31 @@
     renderArrange();
     renderCode();
     renderTransport();
+    renderStudio();
     if (fk && !document.contains(a)) {
       const el = document.querySelector(fk);
       if (el) el.focus({ preventScroll: true });
     }
+  }
+  // A pattern-density display, driven by actual notes rather than a decorative waveform.
+  function renderStudio() {
+    const el = $('sequence-bars');
+    if (!el) return;
+    const section = state.sections[state.section];
+    el.innerHTML = Array.from({ length: 16 }, (_, step) => {
+      const count = DEFS.reduce((n, d) => n + (section.on[d.id] ? state.layers[d.id].steps.filter(row => row[step]).length : 0), 0);
+      return '<i style="--level:' + Math.min(100, 8 + count * 10) + '%" data-step="' + step + '"></i>';
+    }).join('');
+    $('studio-patch').textContent = state.bpm + ' BPM · ' + state.keyRoot + ' ' + state.scaleName.toUpperCase();
+    paintStudio();
+  }
+  function paintStudio() {
+    const screen = document.querySelector('.studio-screen');
+    if (!screen) return;
+    screen.classList.toggle('is-running', ui.playing);
+    $('studio-status').textContent = ui.loading ? 'LOADING' : ui.playing ? 'PLAYING' : 'STANDBY';
+    $('studio-step').textContent = String(Math.max(0, ui.step) + 1).padStart(2, '0') + ' / 16';
+    for (const bar of $$('#sequence-bars i')) bar.classList.toggle('is-current', ui.playing && Number(bar.dataset.step) === ui.step);
   }
   function focusKey(el) {
     if (el.dataset.meter) return '[data-meter="' + el.dataset.meter + '"]';
@@ -806,7 +835,7 @@
 
   function renderKnobs() {
     const d = def(state.sel);
-    $('knobs-title').textContent = '◎ ' + d.name + ' KNOBS';
+    $('knobs-title').textContent = '04 / ' + d.name + ' CONTROLS';
     const keys = d.kind === 'pump' ? ['amount', 'rate'] : ['gain', 'lpf', 'env', 'room'];
     $('knobs').innerHTML = keys.map(k => {
       const key = 'p:' + k;
@@ -842,6 +871,7 @@
   }
 
   function renderTransport() {
+    paintStudio();
     for (const b of $$('[data-play-btn]')) {
       b.textContent = ui.loading ? '… LOADING' : ui.playing ? '■ STOP' : '▶ PLAY';
       b.classList.toggle('is-playing', ui.playing);
@@ -965,6 +995,7 @@
     settings[k] = v;
     lsSet(SETTINGS_KEY, settings);
     applySettings();
+    renderKnobs();
     renderSettings();
   }
   function renderSettings() {
@@ -1173,7 +1204,9 @@
     const meter = e.target.closest('.meter');
     if (meter) {
       beginGesture();
-      drag = { el: meter, pointerId: e.pointerId };
+      const m = meterSpec(meter.dataset.meter);
+      drag = { el: meter, pointerId: e.pointerId, y: e.clientY, start: (m.v - m.rg[0]) / (m.rg[1] - m.rg[0]), rotary: settings.theme === 'studio' && meter.classList.contains('rotary') };
+      meter.focus({ preventScroll: true });
       try { meter.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
       meterFromPointer(e);
     }
