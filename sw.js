@@ -1,6 +1,6 @@
 // Loop Forge service worker: offline app shell + cached drum samples.
 // Bump CACHE when shipping changes to the app files.
-const CACHE = 'loopforge-studio-v2';
+const CACHE = 'loopforge-studio-v3';
 const SAMPLES = 'loopforge-samples-v1';
 const SHELL = [
   './', 'index.html', 'css/style.css', 'css/studio.css', 'js/guide.js', 'js/app.js', 'vendor/strudel-web.js', 'icon.svg', 'manifest.webmanifest',
