@@ -16,7 +16,7 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 - **My Loops**: save named loops on the device, export/import `.json` files
 - **Share links** that carry the whole loop in the URL
 - **Copy code / Open in Strudel**
-- **5 themes**: Tactile Studio (default), Neon Night, Pocket DMG, Riso Paper (light), Ember
+- **5 themes**: Carbon Studio (default), Neon Night, Pocket DMG, Riso Paper (light), Ember
 - **Settings**: grid size, scanlines, motion (respects reduced-motion by default)
 - **Responsive**: phone (bottom transport dock, 8-step paging), tablet and desktop
 - **Installable PWA** that works offline after the first load (drum samples are cached too)
@@ -128,3 +128,46 @@ and local sample fixtures. They cover upload, trimming, pitch, preview, real Str
 playback, recording, IndexedDB persistence, cross-context export/import, invalid
 files, missing audio, and responsive layouts. `CHROME_PATH` can select an existing
 Chromium binary.
+
+
+## Android personal test build
+
+`android/` is a small native WebView shell with the web app bundled inside the APK.
+It uses a local HTTPS origin for microphone APIs and IndexedDB. Requires Android
+8.0+ and an up-to-date Android System WebView (Chromium 120+ for nested CSS).
+This is a sideloaded personal test build, not a Play Store release.
+
+- Download and open the APK on Android. Allow installation from the browser/files
+  app if Android asks, then install. Microphone permission is requested when recording.
+- Keep an internet connection for the Strudel drum sample catalog and drum sounds.
+  The native app bundles its UI, but does not promise offline drum playback.
+- Upload uses the Android file picker; Export .JSON uses the Android save dialog.
+  Existing browser loops must be exported/imported to transfer into the native app.
+- Audio and loops stay in app-local storage. Export backups before uninstalling or
+  clearing app data. Leaving the app stops playback and discards an unfinished take.
+- Android permissions: internet and microphone only. No broad storage permission.
+- Source includes no signing keys. Future updates must use the same signing key and
+  a higher manifest versionCode to preserve app data through an in-place update.
+
+### Build the APK
+
+Install JDK 17 and Android SDK platform 35 / build-tools 35.0.0. Set `JAVA_HOME`
+and `ANDROID_HOME`. Create your own keystore once (keep it securely for updates):
+
+```sh
+keytool -genkeypair -keystore loop-forge.keystore -alias loopforge -keyalg RSA -keysize 2048 -validity 10000
+export LOOPFORGE_KEYSTORE=/absolute/path/loop-forge.keystore
+read -rs LOOPFORGE_KEY_PASSWORD
+export LOOPFORGE_KEY_PASSWORD
+bash android/build.sh
+```
+
+Use the same password for the key and keystore. Output:
+`android/build/Loop-Forge-Carbon.apk`. The SDK-only script compiles Java, converts
+it with D8, packages the assets, aligns, signs, and verifies the APK. Build outputs
+and keystores are git-ignored. The delivered test keystore uses password `android`
+and alias `loopforge`; it is only for this personal test app, not a production key.
+
+Validation: browser audio integration/portable export tests, Android bridge dispatch,
+responsive screenshots, Java/D8 compilation, APK v2/v3 signatures and zip alignment.
+Physical-device microphone, file-picker and install checks remain to be done on Android.

@@ -138,7 +138,7 @@
   };
 
   const THEMES = [
-    { id: 'studio', name: 'TACTILE STUDIO', sw: ['#1769b3', '#ffcc2e', '#ff681e', '#a387f4', '#45c4d6'] },
+    { id: 'studio', name: 'CARBON STUDIO', sw: ['#222527', '#ff903f', '#ff681e', '#a387f4', '#45c4d6'] },
     { id: 'neon', name: 'NEON NIGHT', sw: ['#1B0F42', '#FF6EC7', '#A16BFF', '#5CE1E6', '#FFE066'] },
     { id: 'gameboy', name: 'POCKET DMG', sw: ['#0F380F', '#306230', '#8BAC0F', '#9BBC0F', '#E0F8D0'] },
     { id: 'paper', name: 'RISO PAPER', sw: ['#F7F0E4', '#2B2118', '#F2668B', '#3CBCC8', '#F5C243'] },
@@ -933,7 +933,8 @@
   }
   function shareURL() {
     const enc = b64(JSON.stringify(strip(state))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    return location.origin + location.pathname + '#s=' + enc;
+    const base = window.LoopForgeAndroid ? 'https://heycristobal.com/Loop-Forge/' : location.origin + location.pathname;
+    return base + '#s=' + enc;
   }
   async function share() {
     if (state.voiceClips.some(Boolean)) return flash('VOICE AUDIO NEEDS A FILE: USE MY LOOPS → EXPORT .JSON');
@@ -945,6 +946,7 @@
     copyText(url, 'SHARE LINK COPIED');
   }
   function download(name, text) {
+    if (window.LoopForgeAndroid?.saveFile) { window.LoopForgeAndroid.saveFile(name, text); return; }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
     a.download = name;
@@ -957,7 +959,7 @@
       const audio = await LFVoice.exportAssets(loop.voiceClips);
       const name = 'loop-forge-' + loop.keyRoot.replace('#', 's').toLowerCase() + '-' + loop.bpm + 'bpm.json';
       download(name, JSON.stringify({ app: 'loop-forge', version: 4, loop, audio }));
-      flash('LOOP EXPORTED WITH AUDIO');
+      flash(window.LoopForgeAndroid ? 'CHOOSE WHERE TO SAVE YOUR LOOP' : 'LOOP EXPORTED WITH AUDIO');
     } catch (e) { flash(e.message); }
   }
   async function importLoop(file) {
@@ -1341,7 +1343,7 @@
     if (fromLink) flash('LOADED A SHARED LOOP');
     else if (firstVisit) openGuide('start');
     requestAnimationFrame(tick);
-    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    if (!window.LoopForgeAndroid && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
   }

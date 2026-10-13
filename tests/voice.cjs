@@ -48,6 +48,13 @@ const server=http.createServer((req,res)=>{
   await q.locator('[data-voice-slot="0"]').click();await q.locator('#voice-file').setInputFiles({name:'bad.wav',mimeType:'audio/wav',buffer:Buffer.from('bad')});await q.waitForFunction(()=>document.getElementById('voice-status').textContent.includes('could not be decoded'));await q.locator('#voice-start').fill('0.9');await q.locator('#voice-end').fill('0.1');await q.locator('#voice-apply').click();assert.match(await q.locator('#voice-status').textContent(),/end must be after start/);await q.locator('#dlg-voice [data-act="close-dialog"]').click();
   for(const width of [320,390,768,1280]){await q.setViewportSize({width,height:900});assert(await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'overflow '+width);}
   await q.screenshot({path:'/tmp/voice-desktop.png',fullPage:true});await q.setViewportSize({width:390,height:844});await q.locator('[data-voice-slot="0"]').click();await q.screenshot({path:'/tmp/voice-mobile.png'});
+  // Android receives the portable audio payload; the browser download path above still works.
+  await p.evaluate(()=>{window.LoopForgeAndroid={saveFile:(name,json)=>{window.__nativeExport={name,payload:JSON.parse(json)};}};});
+  await p.locator('[data-act="export"]').click();await p.waitForFunction(()=>window.__nativeExport);
+  assert.equal(await p.evaluate(()=>window.__nativeExport.payload.audio.length),1);
+  assert.match(await p.evaluate(()=>window.__nativeExport.name),/\.json$/);
+  const fills=await q.evaluate(()=>[document.querySelector('.cell[aria-pressed="true"]'),document.querySelector('.cell[aria-pressed="false"]')].map(el=>getComputedStyle(el).backgroundImage));
+  assert.notEqual(fills[0],fills[1],'enabled steps stay visually distinct in carbon theme');
   assert.deepEqual(errors,[]);console.log('PASS: WAV upload, trimming, pitch, preview, real Strudel playback, persistence, portable export/import, microphone recording, invalid input, responsive layout');
   await c2.close();await context.close();await browser.close();server.close();
 })().catch(e=>{console.error(e);server.close();process.exit(1)});
