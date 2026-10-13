@@ -132,7 +132,7 @@
   };
 
   const THEMES = [
-    { id: 'studio', name: 'TACTILE STUDIO', sw: ['#e8e7e2', '#ef794d', '#b8a3da', '#9bcbbb', '#e7bc58'] },
+    { id: 'studio', name: 'TACTILE STUDIO', sw: ['#1769b3', '#ffcc2e', '#ff681e', '#a387f4', '#45c4d6'] },
     { id: 'neon', name: 'NEON NIGHT', sw: ['#1B0F42', '#FF6EC7', '#A16BFF', '#5CE1E6', '#FFE066'] },
     { id: 'gameboy', name: 'POCKET DMG', sw: ['#0F380F', '#306230', '#8BAC0F', '#9BBC0F', '#E0F8D0'] },
     { id: 'paper', name: 'RISO PAPER', sw: ['#F7F0E4', '#2B2118', '#F2668B', '#3CBCC8', '#F5C243'] },

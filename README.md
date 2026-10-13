@@ -67,7 +67,7 @@ Saved loops from the earlier version (stored under `loopforge.v1`) and old share
 Branch: `experiment/tactile-studio`. This is a visual and interaction experiment;
 main and the production GitHub Pages site are unchanged.
 
-- Warm molded chassis, recessed sequence display, raised step pads and pastel preset keys.
+- Cobalt molded chassis, a dot-matrix sequence display, raised step pads, saturated orange/violet/blue preset keys, and yellow/charcoal/cyan control modules.
 - Real rotary controls: drag **up/down** to adjust, or focus and use arrow keys,
   Page Up/Down, Home/End. Tempo and swing retain horizontal faders.
 - The screen visualizes note density across all enabled layers in the selected
