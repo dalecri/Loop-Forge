@@ -61,3 +61,32 @@ sw.js                 offline cache (bump CACHE when shipping changes)
 Adding a theme: copy one of the `[data-theme="…"]` blocks in `css/style.css` and add an entry to `THEMES` in `js/app.js`.
 
 Saved loops from the earlier version (stored under `loopforge.v1`) and old share links still load.
+
+## Tactile Studio experiment
+
+Branch: `experiment/tactile-studio`. This is a visual and interaction experiment;
+main and the production GitHub Pages site are unchanged.
+
+- Warm molded chassis, recessed sequence display, raised step pads and pastel preset keys.
+- Real rotary controls: drag **up/down** to adjust, or focus and use arrow keys,
+  Page Up/Down, Home/End. Tempo and swing retain horizontal faders.
+- The screen visualizes note density across all enabled layers in the selected
+  section; it is a pattern preview, not an audio waveform. Its playhead uses the
+  existing Strudel scheduler.
+- Responsive transport dock and eight-step paging on phones.
+- Choose **Tactile Studio** or any original theme in Settings.
+- Experimental appearance uses `loopforge.settings.studio`, leaving the original
+  appearance preference intact. Musical state and saved-loop formats are unchanged.
+- `css/studio.css` scopes the hardware treatment to the Studio theme. The service
+  worker includes the new stylesheet with a separate cache version.
+
+### Try this branch locally
+
+```sh
+git fetch origin
+git switch experiment/tactile-studio
+python3 -m http.server 8000
+```
+
+Open http://localhost:8000. Use a separate browser profile if you want test edits
+to remain separate from other Loop Forge loops stored on the same origin.

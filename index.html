@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="neon" data-scanlines="on" data-motion="auto" data-cells="cozy">
+<html lang="en" data-theme="studio" data-scanlines="off" data-motion="auto" data-cells="cozy">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Loop Forge</title>
   <meta name="description" content="Tap pixel blocks, get music, steal the Strudel code. A pocket loop maker for the browser.">
-  <meta name="theme-color" content="#1B0F42">
+  <meta name="theme-color" content="#e8e7e2">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
@@ -13,10 +13,11 @@
   <link rel="preload" href="fonts/pixelify-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/vt323-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/studio.css">
   <script>
     // Apply the saved look before first paint so there's no theme flash.
     try {
-      var s = JSON.parse(localStorage.getItem('loopforge.settings') || '{}'), r = document.documentElement;
+      var s = JSON.parse(localStorage.getItem('loopforge.settings.studio') || '{}'), r = document.documentElement;
       if (s.theme) r.dataset.theme = s.theme;
       if (s.scanlines === false) r.dataset.scanlines = 'off';
       if (s.motion) r.dataset.motion = s.motion;
@@ -32,14 +33,14 @@
     <!-- Header / transport -->
     <header class="panel hero full">
       <div class="bar bar-hero">
-        <span>◈ LOOP.FORGE — STRUDEL MACHINE</span>
+        <span>LF–01 / POCKET MUSIC MACHINE</span>
         <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
       </div>
       <div class="hero-row">
         <div class="brand">
           <h1 class="title">LOOP FORGE</h1>
-          <div class="tagline">tap blocks &gt; get music &gt; steal the code</div>
-          <div class="now" id="now" aria-live="polite"></div>
+          <div class="tagline">Small machine. Endless possibilities.</div>
+          
         </div>
         <div class="hero-actions">
           <button class="btn btn-icon" data-act="undo" data-undo aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
@@ -51,12 +52,21 @@
           <button class="play" data-act="play" data-play-btn title="Play / stop (Space)">▶ PLAY</button>
         </div>
       </div>
+      <div class="studio-console">
+        <div class="studio-screen" role="img" aria-label="Live sequence display">
+          <div class="screen-top"><span>SEQUENCE MONITOR</span><span id="studio-status">STANDBY</span></div>
+          <div class="sequence-bars" id="sequence-bars" aria-hidden="true"></div>
+          <div class="screen-bottom"><span id="studio-patch"></span><span id="studio-step">01 / 16</span></div>
+          <div class="now" id="now" aria-live="polite"></div>
+        </div>
+        <div class="speaker" aria-hidden="true"><div class="speaker-grille"></div><span>STEREO / STRUDEL ENGINE</span></div>
+      </div>
     </header>
 
     <!-- Step grid -->
     <section class="panel full" aria-labelledby="grid-title">
       <div class="bar bar-grid">
-        <span id="grid-title">▤ STEP GRID</span>
+        <span id="grid-title">01 / SEQUENCER</span>
         <span class="bar-r"><small id="sel-hint"></small><button class="help-btn" data-act="guide" data-arg="grid" aria-label="Help: step grid" title="What is this?">?</button></span>
       </div>
       <div class="body" style="padding:10px;gap:10px">
@@ -68,13 +78,13 @@
 
     <!-- Tempo & key -->
     <section class="panel" aria-labelledby="tempo-title">
-      <div class="bar bar-tempo"><span id="tempo-title">✦ TEMPO &amp; KEY</span><button class="help-btn" data-act="guide" data-arg="tempo" aria-label="Help: tempo and key" title="What is this?">?</button></div>
+      <div class="bar bar-tempo"><span id="tempo-title">02 / TEMPO &amp; KEY</span><button class="help-btn" data-act="guide" data-arg="tempo" aria-label="Help: tempo and key" title="What is this?">?</button></div>
       <div class="body" id="tempo"></div>
     </section>
 
     <!-- Starters -->
     <section class="panel" aria-labelledby="start-title">
-      <div class="bar bar-start"><span id="start-title">★ STARTERS</span><button class="help-btn" data-act="guide" data-arg="starters" aria-label="Help: starters" title="What is this?">?</button></div>
+      <div class="bar bar-start"><span id="start-title">03 / SOUND RECIPES</span><button class="help-btn" data-act="guide" data-arg="starters" aria-label="Help: starters" title="What is this?">?</button></div>
       <div class="body" id="starters"></div>
     </section>
 
@@ -86,7 +96,7 @@
 
     <!-- Arrangement -->
     <section class="panel" aria-labelledby="arr-title">
-      <div class="bar bar-arr"><span id="arr-title">▦ ARRANGEMENT</span><button class="help-btn" data-act="guide" data-arg="arrange" aria-label="Help: song parts" title="What is this?">?</button></div>
+      <div class="bar bar-arr"><span id="arr-title">05 / ARRANGEMENT</span><button class="help-btn" data-act="guide" data-arg="arrange" aria-label="Help: song parts" title="What is this?">?</button></div>
       <div class="body" id="arrange"></div>
     </section>
 
