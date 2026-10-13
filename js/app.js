@@ -227,7 +227,7 @@
 
   let state = makeInitial();
   const ui = {
-    playing: false, loading: false, step: -1, bar: -1, showCode: false, page: 'all', toastTimer: 0,
+    playing: false, loading: false, step: -1, bar: -1, showCode: false, page: 'all', toastTimer: 0, tour: -1, guideTab: 'start',
     undo: [], redo: [], lastCo: { key: null, t: 0 }, gestureSnap: null, taps: []
   };
   let settings = Object.assign({ theme: 'neon', scanlines: true, motion: 'auto', cells: 'cozy' }, lsGet(SETTINGS_KEY, {}));
@@ -978,6 +978,7 @@
       '<div class="label">MOTION</div><div class="seg-ctrl">' + opt('motion', 'auto', 'MATCH SYSTEM') + opt('motion', 'on', 'ON') + opt('motion', 'off', 'OFF') + '</div>' +
       '<div class="rule"></div><div class="label">KEYBOARD SHORTCUTS</div>' +
       '<dl class="kbd-list">' +
+      '<dt>? or H</dt><dd>How-to guide</dd>' +
       '<dt>SPACE</dt><dd>Play / stop</dd>' +
       '<dt>1 – 8</dt><dd>Pick a layer</dd>' +
       '<dt>SHIFT + 1 – 4</dt><dd>Pick a section</dd>' +
@@ -996,6 +997,76 @@
   }
   function closeDialogs() { for (const d of $$('dialog[open]')) { if (d.close) d.close(); else d.removeAttribute('open'); } }
 
+  // ── guide ───────────────────────────────────────────────────────
+  const GUIDE = window.LOOP_FORGE_GUIDE || [];
+  const TOUR = window.LOOP_FORGE_TOUR || [];
+  const WELCOMED_KEY = 'loopforge.welcomed';
+  function renderGuide(id) {
+    const i = Math.max(0, GUIDE.findIndex(g => g.id === id));
+    const g = GUIDE[i];
+    if (!g) return;
+    ui.guideTab = g.id;
+    $('guide-tabs').innerHTML = GUIDE.map(t =>
+      '<button class="guide-tab" role="tab" id="gt-' + t.id + '" data-act="guide-tab" data-arg="' + t.id + '" aria-selected="' + (t.id === g.id) + '"' +
+      ' aria-controls="guide-body" tabindex="' + (t.id === g.id ? 0 : -1) + '">' + t.tab + '</button>').join('');
+    const prev = GUIDE[i - 1], next = GUIDE[i + 1];
+    $('guide-body').setAttribute('aria-labelledby', 'gt-' + g.id);
+    $('guide-body').innerHTML = '<h2>' + esc(g.title) + '</h2>' + g.html +
+      (g.id === 'start' ? '<button class="btn btn-hot" data-act="tour" style="align-self:flex-start">▶ TAKE THE 1-MINUTE TOUR</button>' : '') +
+      '<div class="guide-nav">' +
+      (prev ? '<button class="btn btn-pixel" data-act="guide-tab" data-arg="' + prev.id + '">◀ ' + prev.tab + '</button>' : '<span></span>') +
+      (next ? '<button class="btn btn-pixel" data-act="guide-tab" data-arg="' + next.id + '">' + next.tab + ' ▶</button>' : '<button class="btn btn-pixel" data-act="close-dialog">GOT IT ✓</button>') +
+      '</div>';
+    $('guide-body').scrollTop = 0;
+    const tab = $('gt-' + g.id);
+    if (tab) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  function openGuide(id) {
+    endTour();
+    closeDialogs();
+    renderGuide(id || ui.guideTab || 'start');
+    const dlg = $('dlg-guide');
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    lsSet(WELCOMED_KEY, true);
+  }
+
+  // Spotlight tour: dims the page around one panel at a time.
+  function tourTarget(step) {
+    if (step.mobileTarget && matchMedia('(max-width: 760px)').matches) return document.querySelector(step.mobileTarget);
+    if (step.panel) { const el = $(step.panel); return el && el.closest('.panel'); }
+    return document.querySelector(step.target);
+  }
+  function showTourStep(i) {
+    if (!TOUR.length) return;
+    ui.tour = clamp(i, 0, TOUR.length - 1);
+    for (const el of $$('.tour-focus')) el.classList.remove('tour-focus');
+    const step = TOUR[ui.tour], el = tourTarget(step);
+    if (el) {
+      el.classList.add('tour-focus');
+      const tall = el.getBoundingClientRect().height > innerHeight * 0.45;
+      const calm = settings.motion === 'off' || (settings.motion === 'auto' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+      if (!el.classList.contains('dock')) el.scrollIntoView({ block: tall ? 'start' : 'center', behavior: calm ? 'auto' : 'smooth' });
+    }
+    const last = ui.tour === TOUR.length - 1;
+    const card = $('tour');
+    card.innerHTML = '<div class="bar bar-tempo"><span>✦ QUICK TOUR</span><button class="dlg-close" data-act="tour-end" aria-label="End tour">✕</button></div>' +
+      '<div class="body"><h2 id="tour-title">' + esc(step.title) + '</h2><p>' + esc(step.text) + '</p>' +
+      '<div class="tour-nav"><span class="tour-count">' + (ui.tour + 1) + ' / ' + TOUR.length + '</span><span style="display:flex;gap:6px">' +
+      (ui.tour > 0 ? '<button class="btn btn-pixel" data-act="tour-back">◀ BACK</button>' : '<button class="btn btn-pixel" data-act="tour-end">SKIP</button>') +
+      '<button class="btn btn-pixel btn-help" data-act="' + (last ? 'tour-end' : 'tour-next') + '">' + (last ? 'DONE ✓' : 'NEXT ▶') + '</button>' +
+      '</span></div></div>';
+    card.hidden = false;
+    const btn = card.querySelector('[data-act="tour-next"], [data-act="tour-end"].btn-help');
+    if (btn) btn.focus({ preventScroll: true });
+  }
+  function startTour() { closeDialogs(); lsSet(WELCOMED_KEY, true); showTourStep(0); }
+  function endTour() {
+    if (ui.tour == null || ui.tour < 0) return;
+    ui.tour = -1;
+    for (const el of $$('.tour-focus')) el.classList.remove('tour-focus');
+    $('tour').hidden = true;
+  }
+
   // ── actions ─────────────────────────────────────────────────────
   function tapTempo() {
     const now = performance.now();
@@ -1012,6 +1083,13 @@
     undo, redo,
     'open-loops': () => openDialog('dlg-loops'),
     'open-settings': () => openDialog('dlg-settings'),
+    'open-guide': () => openGuide('start'),
+    guide: id => openGuide(id),
+    'guide-tab': id => { renderGuide(id); const t = $('gt-' + id); if (t) t.focus({ preventScroll: true }); },
+    tour: startTour,
+    'tour-next': () => showTourStep(ui.tour + 1),
+    'tour-back': () => showTourStep(ui.tour - 1),
+    'tour-end': endTour,
     'close-dialog': closeDialogs,
     code: () => { ui.showCode = !ui.showCode; renderCode(); },
     copy: () => copyText(buildCode(false), 'COPIED. PASTE IT INTO STRUDEL.CC'),
@@ -1118,7 +1196,22 @@
   document.addEventListener('keydown', e => {
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-    if (document.querySelector('dialog[open]')) return; // dialogs handle their own keys (Esc closes)
+    if (ui.tour >= 0) {
+      if (e.key === 'Escape') { endTour(); return; }
+      if (e.key === 'ArrowRight') { e.preventDefault(); ui.tour < TOUR.length - 1 ? showTourStep(ui.tour + 1) : endTour(); return; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); showTourStep(ui.tour - 1); return; }
+    }
+    const openDlg = document.querySelector('dialog[open]');
+    if (openDlg) {
+      // Arrow keys move between guide tabs.
+      if (openDlg.id === 'dlg-guide' && t && t.classList.contains('guide-tab') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        const i = GUIDE.findIndex(g => g.id === ui.guideTab) + (e.key === 'ArrowRight' ? 1 : -1);
+        const g = GUIDE[(i + GUIDE.length) % GUIDE.length];
+        actions['guide-tab'](g.id);
+      }
+      return; // dialogs handle their own keys (Esc closes)
+    }
     if (t && t.dataset && t.dataset.meter && meterKey(e, t)) { e.preventDefault(); return; }
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
@@ -1136,7 +1229,7 @@
     if (k === 'm') actions.mode();
     else if (k === 't') tapTempo();
     else if (k === 'c') actions.code();
-    else if (k === '?') openDialog('dlg-settings');
+    else if (k === '?' || k === 'h') openGuide();
   });
 
   $('import-file').addEventListener('change', e => {
@@ -1167,6 +1260,7 @@
       // Drop the hash so later edits aren't overwritten by the link on reload.
       history.replaceState(null, '', location.pathname + location.search);
     }
+    const firstVisit = !lsGet(STORE_KEY, null) && !lsGet(WELCOMED_KEY, false);
     if (!loaded) loaded = normalize(lsGet(STORE_KEY, null));
     if (loaded) state = loaded;
     else {
@@ -1177,6 +1271,7 @@
     persist();
     render();
     if (fromLink) flash('LOADED A SHARED LOOP');
+    else if (firstVisit) openGuide('start');
     requestAnimationFrame(tick);
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
       navigator.serviceWorker.register('sw.js').catch(() => {});

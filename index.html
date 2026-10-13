@@ -44,6 +44,7 @@
         <div class="hero-actions">
           <button class="btn btn-icon" data-act="undo" data-undo aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
           <button class="btn btn-icon" data-act="redo" data-redo aria-label="Redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+          <button class="btn btn-pixel btn-help" data-act="open-guide" title="How to use Loop Forge">? HOW TO</button>
           <button class="btn btn-pixel" data-act="open-loops" title="Saved loops">LOOPS</button>
           <button class="btn btn-icon" data-act="open-settings" aria-label="Settings and themes" title="Settings and themes">⚙</button>
           <button class="mode" data-act="mode" data-mode-btn title="Loop one section or play the whole song (M)">LOOP</button>
@@ -56,7 +57,7 @@
     <section class="panel full" aria-labelledby="grid-title">
       <div class="bar bar-grid">
         <span id="grid-title">▤ STEP GRID</span>
-        <small id="sel-hint"></small>
+        <span class="bar-r"><small id="sel-hint"></small><button class="help-btn" data-act="guide" data-arg="grid" aria-label="Help: step grid" title="What is this?">?</button></span>
       </div>
       <div class="body" style="padding:10px;gap:10px">
         <div class="chips" id="chips" role="toolbar" aria-label="Layers"></div>
@@ -67,25 +68,25 @@
 
     <!-- Tempo & key -->
     <section class="panel" aria-labelledby="tempo-title">
-      <div class="bar bar-tempo"><span id="tempo-title">✦ TEMPO &amp; KEY</span></div>
+      <div class="bar bar-tempo"><span id="tempo-title">✦ TEMPO &amp; KEY</span><button class="help-btn" data-act="guide" data-arg="tempo" aria-label="Help: tempo and key" title="What is this?">?</button></div>
       <div class="body" id="tempo"></div>
     </section>
 
     <!-- Starters -->
     <section class="panel" aria-labelledby="start-title">
-      <div class="bar bar-start"><span id="start-title">★ STARTERS</span></div>
+      <div class="bar bar-start"><span id="start-title">★ STARTERS</span><button class="help-btn" data-act="guide" data-arg="starters" aria-label="Help: starters" title="What is this?">?</button></div>
       <div class="body" id="starters"></div>
     </section>
 
     <!-- Knobs -->
     <section class="panel" aria-labelledby="knobs-title">
-      <div class="bar bar-knobs"><span id="knobs-title">◎ KNOBS</span></div>
+      <div class="bar bar-knobs"><span id="knobs-title">◎ KNOBS</span><button class="help-btn" data-act="guide" data-arg="knobs" aria-label="Help: knobs" title="What is this?">?</button></div>
       <div class="body"><div class="sliders" id="knobs"></div></div>
     </section>
 
     <!-- Arrangement -->
     <section class="panel" aria-labelledby="arr-title">
-      <div class="bar bar-arr"><span id="arr-title">▦ ARRANGEMENT</span></div>
+      <div class="bar bar-arr"><span id="arr-title">▦ ARRANGEMENT</span><button class="help-btn" data-act="guide" data-arg="arrange" aria-label="Help: song parts" title="What is this?">?</button></div>
       <div class="body" id="arrange"></div>
     </section>
 
@@ -101,12 +102,15 @@
           <button class="btn c-cyan" data-act="open-strudel">OPEN STRUDEL</button>
           <button class="btn c-pink" data-act="share">SHARE LINK</button>
         </div>
+        <p class="hint">This is the music code your taps write for <a href="https://strudel.cc" target="_blank" rel="noopener">Strudel</a>. You never need to touch it. <button class="link-inline" data-act="guide" data-arg="save">What is this?</button></p>
       </div>
     </section>
 
     <footer class="foot full">
       <span id="save-state">SAVED ON THIS DEVICE ✦ LOOP FORGE v3</span>
       <span>
+        <button class="link-btn" data-act="open-guide">[ HOW TO ]</button>
+        <button class="link-btn" data-act="tour">[ TAKE THE TOUR ]</button>
         <button class="link-btn" data-act="open-settings">[ SHORTCUTS ]</button>
         <button class="link-btn" data-act="clear-all">[ CLEAR ALL ]</button>
       </span>
@@ -129,6 +133,16 @@
     <div class="dlg-body" id="settings-body"></div>
   </dialog>
 
+  <!-- Guide dialog -->
+  <dialog id="dlg-guide" class="dlg-wide" aria-labelledby="dlg-guide-title">
+    <div class="bar bar-start"><span id="dlg-guide-title">? HOW TO USE LOOP FORGE</span><button class="dlg-close" data-act="close-dialog" aria-label="Close">✕</button></div>
+    <div class="guide-tabs" id="guide-tabs" role="tablist" aria-label="Guide topics"></div>
+    <div class="dlg-body guide-body" id="guide-body" role="tabpanel" tabindex="0"></div>
+  </dialog>
+
+  <!-- Spotlight tour card -->
+  <div class="tour-card" id="tour" role="dialog" aria-modal="false" aria-labelledby="tour-title" hidden></div>
+
   <!-- Saved loops dialog -->
   <dialog id="dlg-loops" aria-labelledby="dlg-loops-title">
     <div class="bar bar-start"><span id="dlg-loops-title">★ MY LOOPS</span><button class="dlg-close" data-act="close-dialog" aria-label="Close">✕</button></div>
@@ -137,6 +151,7 @@
   <input type="file" id="import-file" accept="application/json,.json" hidden>
 
   <script src="vendor/strudel-web.js" defer></script>
+  <script src="js/guide.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

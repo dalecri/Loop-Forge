@@ -11,6 +11,7 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 - **Starters** (Hyperpop, Prog House, Pluck, Lo-Fi, Techno, Roll Dice) and **"Make it more…"** nudges
 - **Layer tools**: shift left/right, randomize, clear
 - **Arrangement**: intro, build, drop, break, with a per-section on/off for every layer, a proportional timeline and a live "now playing" readout in SONG mode
+- **Built-in guide for beginners**: a "? HOW TO" guide written in plain music language (what each instrument, knob and song part does, plus a word list), a 1-minute spotlight tour, and a "?" on every panel that jumps to the right page. It opens automatically on someone's first visit.
 - **Undo / redo** for everything (Ctrl/⌘+Z, Ctrl/⌘+Shift+Z)
 - **My Loops**: save named loops on the device, export/import `.json` files
 - **Share links** that carry the whole loop in the URL
@@ -24,6 +25,7 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 
 | Key | Action |
 | --- | --- |
+| ? or H | How-to guide |
 | Space | Play / stop |
 | 1 – 8 | Pick a layer |
 | Shift + 1 – 4 | Pick a section |
@@ -50,6 +52,7 @@ Opening `index.html` directly works too, minus the offline service worker. It al
 index.html            page shell
 css/style.css         layout + themes (CSS variables per [data-theme])
 js/app.js             state, rendering, code generation, audio
+js/guide.js           in-app guide + tour text (edit the wording here)
 vendor/strudel-web.js bundled @strudel/web (audio engine)
 fonts/                Pixelify Sans, Silkscreen, VT323 (self-hosted)
 sw.js                 offline cache (bump CACHE when shipping changes)
