@@ -550,3 +550,22 @@ dialog.dlg-wide { width: min(760px, calc(100vw - 24px)); }
 [data-theme="paper"] .g-defs dt { color: #9A5B12; }
 [data-theme="paper"] .g-defs dt.g-c { color: color-mix(in srgb, var(--c) 62%, #000); }
 [data-theme="paper"] .readout, [data-theme="paper"] .bpm-big { color: #9A5B12; }
+
+/* Local voice/audio sampler, compatible with every theme. */
+.voice-slots { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.voice-slot { display:flex; flex-direction:column; gap:8px; text-align:left; min-width:0; padding:15px; border:2px solid var(--ink); background:var(--btn); color:var(--text); box-shadow:0 3px 0 var(--ink); }
+.voice-slot strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; font-size:14px; }
+.voice-slot > span:last-child { font-size:11px; line-height:1.5; }
+.voice-trim { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.voice-trim label { display:flex; flex-direction:column; gap:7px; font-size:12px; }
+.voice-trim input { width:100%; flex:none; min-height:44px; }
+#voice-editor-fields { gap:12px; }
+#voice-wave { width:100%; height:96px; border-radius:7px; }
+#voice-pitch { width:100%; min-height:38px; accent-color:var(--orange); }
+#voice-status { min-height:36px; }
+#voice-name { flex:none; }
+#voice-stop { background:#f46f50; color:#28180c; }
+html[data-theme="studio"] .voice-slot { background:linear-gradient(145deg,#344959,#1c2c3a); color:#f2f8fc; border:1px solid #162938; border-radius:10px; box-shadow:inset 0 1px 1px #6b8291,0 4px 0 #102435,0 6px 8px #142b3c33; }
+html[data-theme="studio"] .voice-slot .label { color:#ffdb62; }
+html[data-theme="studio"] .voice-slot > span:last-child { color:#b9d3e4; }
+@media(max-width:600px) { .voice-slots { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .voice-panel .bar { flex-wrap:wrap; } #dlg-voice .wrap-row .btn { flex:1; } }

@@ -75,6 +75,11 @@
       </div>
     </section>
 
+    <section class="panel full voice-panel" aria-labelledby="voice-title">
+      <div class="bar bar-knobs"><span id="voice-title">VOICE / AUDIO SAMPLER</span><button class="tool" data-act="sel" data-arg="voice">OPEN VOICE GRID</button></div>
+      <div class="body"><div class="voice-slots" id="voice-slots"></div><p class="hint">Record your voice or upload audio. Add steps on the Voice layer to trigger each clip. Loop exports include your audio; share links and Strudel code do not.</p></div>
+    </section>
+
     <!-- Tempo & key -->
     <section class="panel" aria-labelledby="tempo-title">
       <div class="bar bar-tempo"><span id="tempo-title">02 / TEMPO &amp; KEY</span><button class="help-btn" data-act="guide" data-arg="tempo" aria-label="Help: tempo and key" title="What is this?">?</button></div>
@@ -157,10 +162,28 @@
     <div class="bar bar-start"><span id="dlg-loops-title">★ MY LOOPS</span><button class="dlg-close" data-act="close-dialog" aria-label="Close">✕</button></div>
     <div class="dlg-body" id="loops-body"></div>
   </dialog>
+  <dialog id="dlg-voice" aria-labelledby="voice-slot-heading">
+    <div class="bar bar-knobs"><span id="voice-slot-heading">VOICE / AUDIO</span><button class="dlg-close" data-act="close-dialog" aria-label="Close">✕</button></div>
+    <div class="dlg-body">
+      <div class="wrap-row"><button class="btn" id="voice-record">● RECORD MIC</button><button class="btn" id="voice-upload">UPLOAD AUDIO</button><button class="btn c-pink" id="voice-stop" hidden>■ STOP &amp; SAVE</button></div>
+      <p class="hint" id="voice-status" role="status" aria-live="polite"></p>
+      <div id="voice-editor-fields" class="stack" hidden>
+        <label class="label" for="voice-name">CLIP NAME</label><input class="input" id="voice-name" maxlength="60">
+        <canvas id="voice-wave" width="640" height="96" aria-label="Audio waveform with trimmed region highlighted"></canvas>
+        <div class="voice-trim"><label>Start (seconds)<input class="input" id="voice-start" type="number" min="0" step="0.01"></label><label>End (seconds)<input class="input" id="voice-end" type="number" min="0.02" step="0.01"></label></div>
+        <label class="label" for="voice-pitch">PITCH · <output id="voice-pitch-value">0 semitones</output></label><input id="voice-pitch" type="range" min="-12" max="12" step="1" value="0">
+        <p class="hint" id="voice-duration"></p>
+      </div>
+      <div class="wrap-row"><button class="btn" id="voice-preview">▶ PREVIEW</button><button class="btn c-yellow" id="voice-apply">SAVE EDITS</button><button class="tool" id="voice-remove">REMOVE FROM SLOT</button></div>
+      <p class="hint">Microphone recording requires HTTPS or localhost. WAV and MP3 uploads work when supported by your browser. Maximum 30 seconds / 25 MB per source file. Use the Voice controls for volume, tone, and reverb.</p>
+    </div>
+  </dialog>
+  <input type="file" id="voice-file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.aac,.flac" hidden>
   <input type="file" id="import-file" accept="application/json,.json" hidden>
 
   <script src="vendor/strudel-web.js" defer></script>
   <script src="js/guide.js" defer></script>
+  <script src="js/voice.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

@@ -10,7 +10,7 @@
   // Appearance is isolated on this experiment; musical data remains compatible.
   const SETTINGS_KEY = 'loopforge.settings.studio';
   const SLOTS_KEY = 'loopforge.slots';
-  const VERSION = 'v3';
+  const VERSION = 'v4';
   const BPM_RANGE = [60, 200, 1];
   const SWING_RANGE = [0, 1, 0.05];
   const METER_SEGS = 14;
@@ -63,6 +63,12 @@
       labels: { amount: 'DEPTH', rate: 'PUMPS/BAR' }
     }
   ];
+  DEFS.push({
+    id: 'voice', name: 'VOICE', color: 'orange', kind: 'voice',
+    rows: [1, 2, 3, 4].map(n => ({ label: 'clip ' + n })),
+    params: { gain: 0.8, lpf: 16000, room: 0.1 },
+    ranges: R, labels: { gain: 'VOLUME', lpf: 'TONE', room: 'REVERB' }
+  });
   const SECTIONS = [
     { id: 'intro', name: 'INTRO', bars: 8 }, { id: 'build', name: 'BUILD', bars: 8 },
     { id: 'drop', name: 'DROP', bars: 16 }, { id: 'breakdown', name: 'BREAK', bars: 8 }
@@ -168,7 +174,7 @@
   function makeInitial() {
     const layers = {};
     for (const d of DEFS) layers[d.id] = { params: Object.assign({}, d.params), steps: blank(rowCount(d)) };
-    const allOn = () => ({ drums: true, bass: true, lead: true, chords: true, vox: true, arp: true, fx: true, pump: true });
+    const allOn = () => ({ drums: true, bass: true, lead: true, chords: true, vox: true, arp: true, fx: true, pump: true, voice: true });
     const sections = {};
     for (const s of SECTIONS) sections[s.id] = { bars: s.bars, on: allOn() };
     sections.intro.on = { drums: true, chords: true, pump: true };
@@ -176,7 +182,7 @@
     sections.breakdown.on = { chords: true, vox: true, arp: true, pump: true };
     return {
       bpm: 148, keyRoot: 'C', scaleName: 'minor', mode: 'loop', section: 'drop', sel: 'drums', swing: 0,
-      layers, sections, pumpOn: true, pumpTargets: { bass: true, chords: true, vox: false, arp: true, lead: false }
+      voiceClips: [null, null, null, null], layers, sections, pumpOn: true, pumpTargets: { bass: true, chords: true, vox: false, arp: true, lead: false }
     };
   }
 
@@ -184,6 +190,7 @@
   function normalize(raw) {
     if (!raw || typeof raw !== 'object' || !raw.layers || typeof raw.layers !== 'object') return null;
     const st = makeInitial();
+    st.voiceClips = LFVoice.normalize(raw.voiceClips);
     st.bpm = Math.round(num(raw.bpm, BPM_RANGE[0], BPM_RANGE[1], st.bpm));
     if (KEYS.includes(raw.keyRoot)) st.keyRoot = raw.keyRoot;
     if (SCALES[raw.scaleName]) st.scaleName = raw.scaleName;
@@ -223,8 +230,8 @@
   }
 
   const strip = st => {
-    const { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets } = st;
-    return { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets };
+    const { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets, voiceClips } = st;
+    return { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets, voiceClips };
   };
 
   let state = makeInitial();
@@ -344,9 +351,20 @@
     } else line += '.gain(' + g.toFixed(2) + ')';
     return line;
   }
+  function voiceCode(L) {
+    const lines = state.voiceClips.map((c, i) => {
+      if (!c || !L.steps[i].some(Boolean)) return null;
+      return 's("' + L.steps[i].map(on => on ? 'lfvoice_' + c.id : '~').join(' ') + '")' +
+        '.begin(' + (c.start / c.duration).toFixed(6) + ').end(' + (c.end / c.duration).toFixed(6) + ')' +
+        '.speed(' + Math.pow(2, c.pitch / 12).toFixed(6) + ')' +
+        '.gain(' + L.params.gain.toFixed(2) + ').lpf(' + Math.round(L.params.lpf) + ').room(' + L.params.room.toFixed(2) + ')';
+    }).filter(Boolean);
+    return lines.length ? 'stack(' + lines.join(',\n') + ')' : null;
+  }
   function layerCode(id) {
     const d = def(id), L = state.layers[id];
     if (!d || d.kind === 'pump') return null;
+    if (d.kind === 'voice') return voiceCode(L);
     const pumped = state.pumpOn && !!state.pumpTargets[id];
     return d.kind === 'sample' ? sampleCode(d, L) : noteCode(d, L, pumped);
   }
@@ -354,6 +372,7 @@
   const swung = expr => (state.swing > 0.001 ? expr + '.swingBy(' + (state.swing / 6).toFixed(3) + ', 8)' : expr);
   function buildCode(forPlayback) {
     const st = state, live = [], lines = [];
+    if (!forPlayback && st.voiceClips.some(Boolean)) lines.push('// Voice samples are local to Loop Forge. Export the loop JSON to transfer audio. Load matching samples before using this code elsewhere.');
     lines.push('// ' + st.keyRoot + ' ' + st.scaleName + ' · ' + st.bpm + ' BPM · made in Loop Forge');
     lines.push('setcpm(' + st.bpm + '/4)   // ' + st.bpm + ' BPM, one cycle = one bar');
     lines.push('');
@@ -400,7 +419,7 @@
   }
   async function evaluate() {
     if (!ui.playing) return;
-    try { await window.evaluate(buildCode(true)); } catch (e) { console.error(e); flash('PATTERN ERROR'); }
+    try { await LFVoice.prepare(state.voiceClips); await window.evaluate(buildCode(true)); } catch (e) { console.error(e); flash('PATTERN ERROR'); }
   }
   function scheduleEval() {
     if (!ui.playing) return;
@@ -411,11 +430,11 @@
     if (ui.playing || ui.loading) return stop();
     ui.loading = true;
     renderTransport();
-    try { await warmAudio(); } catch (e) {
+    try { await warmAudio(); await LFVoice.prepare(state.voiceClips); } catch (e) {
       console.error(e);
       ui.loading = false;
       renderTransport();
-      return flash('AUDIO ENGINE FAILED TO LOAD. CHECK CONNECTION');
+      return flash(e.message || 'AUDIO ENGINE FAILED TO LOAD. CHECK CONNECTION');
     }
     if (!ui.loading) return; // stopped while loading
     ui.loading = false;
@@ -564,7 +583,7 @@
     if (d.kind === 'pump') return;
     commit(st => {
       const L = st.layers[d.id];
-      if (d.kind === 'sample') {
+      if (d.kind === 'sample' || d.kind === 'voice') {
         const dens = d.id === 'drums' ? [0.25, 0.12, 0.55, 0.12] : [0.06, 0.06, 0.08, 0.1];
         L.steps = L.steps.map((row, ri) => row.map((_, si) => rnd(dens[ri] + (ri === 0 && si % 4 === 0 ? 0.5 : 0))));
       } else if (d.envMode === 'pad') {
@@ -712,6 +731,7 @@
     renderArrange();
     renderCode();
     renderTransport();
+    LFVoice.refresh();
     renderStudio();
     if (fk && !document.contains(a)) {
       const el = document.querySelector(fk);
@@ -795,7 +815,7 @@
     h += '<div class="grid-row" aria-hidden="true"><div class="grid-label"></div><div class="grid-cells">' +
       cols.map(s => '<div class="step-dot' + (s % 4 === 0 ? ' is-beat' : '') + '" data-s="' + s + '"></div>').join('') + '</div></div>';
     d.rows.forEach((row, ri) => {
-      const label = rowLabel(d, row);
+      const label = d.kind === 'voice' ? (state.voiceClips[ri]?.name || 'clip ' + (ri + 1)) : rowLabel(d, row);
       h += '<div class="grid-row"><div class="grid-label">' + esc(label) + '</div><div class="grid-cells">';
       for (const s of cols) {
         const on = !!(L.steps[ri] && L.steps[ri][s]);
@@ -836,7 +856,7 @@
   function renderKnobs() {
     const d = def(state.sel);
     $('knobs-title').textContent = '04 / ' + d.name + ' CONTROLS';
-    const keys = d.kind === 'pump' ? ['amount', 'rate'] : ['gain', 'lpf', 'env', 'room'];
+    const keys = Object.keys(d.params);
     $('knobs').innerHTML = keys.map(k => {
       const key = 'p:' + k;
       return '<div class="slider"><div class="slider-head"><span class="label">' + d.labels[k] + '</span><span class="readout" data-readout="' + key + '">' +
@@ -916,6 +936,7 @@
     return location.origin + location.pathname + '#s=' + enc;
   }
   async function share() {
+    if (state.voiceClips.some(Boolean)) return flash('VOICE AUDIO NEEDS A FILE: USE MY LOOPS → EXPORT .JSON');
     const url = shareURL();
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
       try { await navigator.share({ title: 'Loop Forge loop', text: state.keyRoot + ' ' + state.scaleName + ' · ' + state.bpm + ' BPM', url }); return; }
@@ -930,22 +951,26 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
-  function exportLoop() {
-    const name = 'loop-forge-' + state.keyRoot.replace('#', 's').toLowerCase() + '-' + state.bpm + 'bpm.json';
-    download(name, JSON.stringify({ app: 'loop-forge', version: 3, loop: strip(state) }, null, 2));
-    flash('LOOP EXPORTED');
+  async function exportLoop() {
+    try {
+      const loop = JSON.parse(snapshot());
+      const audio = await LFVoice.exportAssets(loop.voiceClips);
+      const name = 'loop-forge-' + loop.keyRoot.replace('#', 's').toLowerCase() + '-' + loop.bpm + 'bpm.json';
+      download(name, JSON.stringify({ app: 'loop-forge', version: 4, loop, audio }));
+      flash('LOOP EXPORTED WITH AUDIO');
+    } catch (e) { flash(e.message); }
   }
-  function importLoop(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      let st = null;
-      try { const data = JSON.parse(reader.result); st = normalize(data && data.loop ? data.loop : data); } catch (e) { st = null; }
-      if (!st) return flash('THAT FILE IS NOT A LOOP FORGE LOOP');
+  async function importLoop(file) {
+    if (file.size > 12 * 1024 * 1024) return flash('LOOP FILE TOO LARGE (MAX 12 MB)');
+    try {
+      const data = JSON.parse(await file.text());
+      const st = normalize(data && data.loop ? data.loop : data);
+      if (!st) throw new Error('THAT FILE IS NOT A LOOP FORGE LOOP');
+      st.voiceClips = await LFVoice.importAssets(data.audio || [], st.voiceClips);
       commit(s => Object.assign(s, st));
-      flash('LOOP IMPORTED', true);
+      flash('LOOP AND AUDIO IMPORTED', true);
       closeDialogs();
-    };
-    reader.readAsText(file);
+    } catch (e) { flash(e.message || 'COULD NOT IMPORT LOOP'); }
   }
 
   // ── saved loop slots ────────────────────────────────────────────
@@ -970,7 +995,7 @@
       '<div class="rule"></div><div class="label">FILES</div><div class="seg-ctrl">' +
       '<button class="btn btn-pixel" data-act="export">⇩ EXPORT .JSON</button>' +
       '<button class="btn btn-pixel" data-act="import">⇧ IMPORT .JSON</button></div>' +
-      '<p class="hint">Loops live in this browser. Export a file or use SHARE LINK to move them between devices.</p>';
+      '<p class="hint">Loops live in this browser. Export a file to move loops and voice audio between devices. Share links support built-in sounds only.</p>';
   }
   function saveSlot(name) {
     const slots = getSlots();
@@ -1251,7 +1276,7 @@
     if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
     if (mod || e.altKey) return;
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); return; }
-    const digit = /^Digit([1-8])$/.exec(e.code);
+    const digit = /^Digit([1-9])$/.exec(e.code);
     if (digit) {
       const i = Number(digit[1]) - 1;
       if (e.shiftKey) { if (SECTIONS[i]) actions.section(SECTIONS[i].id); }
@@ -1280,6 +1305,16 @@
 
   // ── boot ────────────────────────────────────────────────────────
   function boot() {
+    LFVoice.init({
+      getClips: () => state.voiceClips,
+      onRecordStart: stop,
+      onChange: (slot, clip) => commit(st => {
+        st.voiceClips[slot] = clip;
+        st.sel = 'voice';
+        st.sections[st.section].on.voice = true;
+        if (!clip) st.layers.voice.steps[slot] = Array(16).fill(false);
+      })
+    });
     applySettings();
     let loaded = null, fromLink = false;
     const h = location.hash.match(/[#&]s=([^&]+)/);

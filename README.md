@@ -4,7 +4,7 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 
 ## Features
 
-- **8 layers**: drums, bass, lead, chords, vox chops, arp, FX and a sidechain "pump"
+- **9 layers**: drums, bass, lead, chords, synth vox chops, arp, FX, sidechain "pump", and a four-slot voice/audio sampler
 - **16-step grid** with drag-to-paint (swipe sideways on touch screens, scroll vertically as normal)
 - **Note names on the grid** that follow your root note and scale
 - **Tempo, tap tempo, swing**, 12 root notes and 7 scales
@@ -27,7 +27,7 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 | --- | --- |
 | ? or H | How-to guide |
 | Space | Play / stop |
-| 1 – 8 | Pick a layer |
+| 1 – 9 | Pick a layer |
 | Shift + 1 – 4 | Pick a section |
 | M | Loop / song |
 | T | Tap tempo |
@@ -53,6 +53,7 @@ index.html            page shell
 css/style.css         layout + original themes (CSS variables per [data-theme])
 css/studio.css        Tactile Studio hardware styling
 js/app.js             state, rendering, code generation, audio
+js/voice.js           local recording, WAV assets, trim/pitch editor, portable audio export
 js/guide.js           in-app guide + tour text (edit the wording here)
 vendor/strudel-web.js bundled @strudel/web (audio engine)
 fonts/                Pixelify Sans, Silkscreen, VT323 (self-hosted)
@@ -91,3 +92,39 @@ python3 -m http.server 8000
 
 Open http://localhost:8000. Use a separate browser profile if you want test edits
 to remain separate from other Loop Forge loops stored on the same origin.
+
+
+## Voice and audio clips
+
+1. Open a slot in **Voice / Audio Sampler** below the grid.
+2. Choose **Record Mic**, then **Stop & Save**, or **Upload Audio**.
+3. Set start/end times and pitch, preview, and choose **Save Edits**.
+4. Open the **Voice** layer (keyboard `9`) and add steps to trigger each clip.
+5. Use the Voice volume, tone, and reverb knobs to shape the sound.
+
+There are four slots, each accepting up to 30 seconds / 25 MB of source audio.
+WAV, MP3, M4A and other formats depend on the browser's decoder. Clips are converted
+to mono 24 kHz WAV for consistent playback. Pitch also changes playback speed.
+Preview is dry; the layer effects apply during sequencer playback.
+
+Microphone recording requires **HTTPS or localhost**, microphone permission, and
+MediaRecorder support. Opening the downloaded HTML directly is not a reliable
+microphone setup. Recording stops when the dialog closes, the page is hidden, or
+the 30-second limit is reached. Closing the dialog discards an unfinished take.
+
+Audio remains in this browser's **IndexedDB** and is never uploaded. Named loops
+and undo history retain references to their original clips when a slot is replaced.
+Removing a slot does not erase audio used by other saved loops. Clearing site data
+removes local recordings: use **My Loops → Export .JSON** to keep a portable backup.
+Exports include voice audio; imports restore it on another device. Share links are
+disabled while clips are attached, and copied Strudel code needs matching samples
+loaded separately. Old loop files and loops without audio remain supported.
+
+### Audio integration checks
+
+Install Playwright in your development environment, install its Chromium browser,
+then run `node tests/voice.cjs`. The checks use a generated WAV, synthetic microphone,
+and local sample fixtures. They cover upload, trimming, pitch, preview, real Strudel
+playback, recording, IndexedDB persistence, cross-context export/import, invalid
+files, missing audio, and responsive layouts. `CHROME_PATH` can select an existing
+Chromium binary.
