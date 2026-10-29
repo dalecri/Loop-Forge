@@ -42,9 +42,9 @@ const server=http.createServer((req,res)=>{
   await p.evaluate(()=>scrollTo(0,document.body.scrollHeight));
   assert(Math.abs((await p.locator('.hero').boundingBox()).y)<1,'header stays pinned');
   await p.screenshot({path:'/tmp/loop-forge-cache-fixed.png'});
-  await p.waitForFunction(async()=>{const r=await navigator.serviceWorker.getRegistration();if(!r?.active)return false;return (await caches.keys()).includes('loopforge-20261029-workspace-1');});
+  await p.waitForFunction(async()=>{const r=await navigator.serviceWorker.getRegistration();if(!r?.active)return false;return (await caches.keys()).includes('loopforge-20261029-nav-2');});
   await p.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
-  await p.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.includes('v=20261029-workspace-1'));
+  await p.waitForFunction(()=>navigator.serviceWorker.controller?.scriptURL.includes('v=20261029-nav-2'));
   await p.waitForFunction(async()=>!(await caches.keys()).includes('loopforge-quiet-pixel-aurora-v1'));
   await new Promise(resolve=>{server.close(resolve);server.closeAllConnections();});
   await c.setOffline(true);await p.reload();

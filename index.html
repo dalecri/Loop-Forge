@@ -12,9 +12,9 @@
   <link rel="preload" href="fonts/silkscreen-400-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/pixelify-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/vt323-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=20261029-workspace-1">
-  <link rel="stylesheet" href="css/studio.css?v=20261029-workspace-1">
-  <link rel="stylesheet" href="css/carbon.css?v=20261029-workspace-1">
+  <link rel="stylesheet" href="css/style.css?v=20261029-nav-2">
+  <link rel="stylesheet" href="css/studio.css?v=20261029-nav-2">
+  <link rel="stylesheet" href="css/carbon.css?v=20261029-nav-2">
   <script>
     // Apply the saved look before first paint so there's no theme flash.
     try {
@@ -45,8 +45,8 @@
         <div class="hero-actions">
           <button class="btn btn-icon" data-act="undo" data-undo aria-label="Undo" title="Undo (Ctrl+Z)">↶</button>
           <button class="btn btn-icon" data-act="redo" data-redo aria-label="Redo" title="Redo (Ctrl+Shift+Z)">↷</button>
-          <button class="btn btn-pixel btn-help" data-act="open-guide" title="How to use Loop Forge">? HOW TO</button>
-          <button class="btn btn-pixel" data-act="open-loops" title="Saved loops">LOOPS</button>
+          <button class="btn btn-icon btn-help" data-act="open-guide" aria-label="How to use Loop Forge" title="How to use Loop Forge"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><path d="M12 16.5h.01"/></svg></button>
+          <button class="btn btn-icon" data-act="open-loops" aria-label="Saved loops" title="Saved loops"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6v14h14M7 3h14v14H7z"/><path d="M16 7v5"/><ellipse cx="14.5" cy="12.5" rx="1.5" ry="1"/></svg></button>
           <button class="btn btn-icon" data-act="open-settings" aria-label="Settings and themes" title="Settings and themes">⚙</button>
           <button class="mode" data-act="mode" data-mode-btn title="Loop one section or play the whole song (M)">LOOP</button>
           <button class="play" data-act="play" data-play-btn title="Play / stop (Space)">▶ PLAY</button>
@@ -188,10 +188,10 @@
   <input type="file" id="voice-file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.aac,.flac" hidden>
   <input type="file" id="import-file" accept="application/json,.json" hidden>
 
-  <script src="vendor/strudel-web.js?v=20261029-workspace-1" defer></script>
-  <script src="js/guide.js?v=20261029-workspace-1" defer></script>
-  <script src="js/voice.js?v=20261029-workspace-1" defer></script>
-  <script src="js/recorder.js?v=20261029-workspace-1" defer></script>
-  <script src="js/app.js?v=20261029-workspace-1" defer></script>
+  <script src="vendor/strudel-web.js?v=20261029-nav-2" defer></script>
+  <script src="js/guide.js?v=20261029-nav-2" defer></script>
+  <script src="js/voice.js?v=20261029-nav-2" defer></script>
+  <script src="js/recorder.js?v=20261029-nav-2" defer></script>
+  <script src="js/app.js?v=20261029-nav-2" defer></script>
 </body>
 </html>

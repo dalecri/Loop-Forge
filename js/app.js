@@ -1446,7 +1446,7 @@
     else if (firstVisit) openGuide('start');
     requestAnimationFrame(tick);
     if (!window.LoopForgeAndroid && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      navigator.serviceWorker.register('sw.js?v=20261029-workspace-1', { updateViaCache: 'none' }).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261029-nav-2', { updateViaCache: 'none' }).catch(() => {});
     }
   }
   boot();

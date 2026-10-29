@@ -330,13 +330,13 @@ html[data-theme="studio"] {
   html[data-theme="studio"] {
     .app { padding-bottom:24px; }
     .hero { grid-template-columns:minmax(0,1fr); gap:8px; padding:8px; top:env(safe-area-inset-top,0px); }
-    .hero-row { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; }
-    .hero .brand { grid-column:span 3; min-width:0; }
+    .hero-row { display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:5px; }
+    .hero .brand { grid-column:span 5; min-width:0; }
     .hero .title { font-size:18px; }
     .hero-actions { display:contents; }
-    .hero-actions .mode { order:0; grid-column:span 1; }
-    .hero-actions .play { order:0; grid-column:span 2; }
-    .hero-actions .btn { order:1; width:100%; padding:0 3px; height:32px; }
+    .hero-actions .mode { order:0; grid-column:span 2; }
+    .hero-actions .play { order:0; grid-column:span 3; }
+    .hero-actions .btn { order:1; grid-column:span 2; width:100%; padding:0 3px; height:32px; }
     .hero-actions .btn-help { grid-column:span 2; margin:0; }
     .hero-actions .play,.hero-actions .mode,.hero-actions [data-undo],.hero-actions [data-redo] { display:inline-flex; align-items:center; justify-content:center; }
     .hero-actions .play,.hero-actions .mode { padding:0 3px; height:36px; font-size:10px; }

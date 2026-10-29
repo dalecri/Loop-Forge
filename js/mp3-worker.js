@@ -1,5 +1,5 @@
 /* LAME runs off the UI/audio threads; encode incrementally to bound PCM memory. */
-importScripts('../vendor/lame.min.js?v=20261029-workspace-1');
+importScripts('../vendor/lame.min.js?v=20261029-nav-2');
 let encoder, chunks = [];
 const pcm16 = data => {
   const out = new Int16Array(data.length);

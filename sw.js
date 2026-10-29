@@ -1,6 +1,6 @@
 // Loop Forge service worker: offline app shell + cached drum samples.
 // Bump CACHE when shipping changes to the app files.
-const VERSION = '20261029-workspace-1';
+const VERSION = '20261029-nav-2';
 const CACHE = 'loopforge-' + VERSION;
 const SAMPLES = 'loopforge-samples-v1';
 const SHELL = [
