@@ -53,8 +53,8 @@ const server=http.createServer((req,res)=>{
   await p.locator('[data-act="export"]').click();await p.waitForFunction(()=>window.__nativeExport);
   assert.equal(await p.evaluate(()=>window.__nativeExport.payload.audio.length),1);
   assert.match(await p.evaluate(()=>window.__nativeExport.name),/\.json$/);
-  const fills=await q.evaluate(()=>[document.querySelector('.cell[aria-pressed="true"]'),document.querySelector('.cell[aria-pressed="false"]')].map(el=>getComputedStyle(el).backgroundImage));
-  assert.notEqual(fills[0],fills[1],'enabled steps stay visually distinct in carbon theme');
+  const fills=await q.evaluate(()=>[document.querySelector('.cell[aria-pressed="true"]'),document.querySelector('.cell[aria-pressed="false"]')].map(el=>getComputedStyle(el).backgroundColor));
+  assert.notEqual(fills[0],fills[1],'enabled steps stay visually distinct in studio theme');
   assert.deepEqual(errors,[]);console.log('PASS: WAV upload, trimming, pitch, preview, real Strudel playback, persistence, portable export/import, microphone recording, invalid input, responsive layout');
   await c2.close();await context.close();await browser.close();server.close();
 })().catch(e=>{console.error(e);server.close();process.exit(1)});

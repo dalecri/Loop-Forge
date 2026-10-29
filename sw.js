@@ -1,9 +1,10 @@
 // Loop Forge service worker: offline app shell + cached drum samples.
 // Bump CACHE when shipping changes to the app files.
-const CACHE = 'loopforge-carbon-v1';
+const CACHE = 'loopforge-quiet-pixel-v3';
 const SAMPLES = 'loopforge-samples-v1';
 const SHELL = [
   './', 'index.html', 'css/style.css', 'css/studio.css', 'css/carbon.css', 'js/guide.js', 'js/app.js', 'js/voice.js', 'vendor/strudel-web.js', 'icon.svg', 'manifest.webmanifest',
+  'fonts/AlphaLyrae-Medium.woff2', 'fonts/space-mono-400-latin.woff2', 'fonts/space-mono-700-latin.woff2',
   'fonts/pixelify-sans-latin.woff2', 'fonts/silkscreen-400-latin.woff2', 'fonts/vt323-latin.woff2'
 ];
 

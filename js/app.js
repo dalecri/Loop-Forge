@@ -409,6 +409,7 @@
 
   // ── audio ───────────────────────────────────────────────────────
   let repl = null, replPromise = null, evalTimer = 0;
+  let transportVersion = 0, evaluationQueue = Promise.resolve();
   function warmAudio() {
     if (replPromise) return replPromise;
     if (typeof window.initStrudel !== 'function') return Promise.reject(new Error('strudel not loaded'));
@@ -417,9 +418,23 @@
       .catch(err => { replPromise = null; throw err; });
     return replPromise;
   }
-  async function evaluate() {
-    if (!ui.playing) return;
-    try { await LFVoice.prepare(state.voiceClips); await window.evaluate(buildCode(true)); } catch (e) { console.error(e); flash('PATTERN ERROR'); }
+  function evaluate() {
+    const version = transportVersion;
+    // Serialize evaluations: an old asynchronous compile must never replace a
+    // newer pattern or restart a transport that the user has already stopped.
+    evaluationQueue = evaluationQueue.then(async () => {
+      if (!ui.playing || version !== transportVersion) return;
+      try {
+        await LFVoice.prepare(state.voiceClips);
+        if (!ui.playing || version !== transportVersion) return;
+        // Compile without autostart; only the current transport may start it.
+        await repl.evaluate(buildCode(true), false);
+        if (ui.playing && version === transportVersion && !repl.scheduler.started) repl.start();
+      } catch (e) {
+        if (version === transportVersion) { console.error(e); flash('PATTERN ERROR'); }
+      }
+    });
+    return evaluationQueue;
   }
   function scheduleEval() {
     if (!ui.playing) return;
@@ -428,15 +443,17 @@
   }
   async function togglePlay() {
     if (ui.playing || ui.loading) return stop();
+    const version = ++transportVersion;
     ui.loading = true;
     renderTransport();
     try { await warmAudio(); await LFVoice.prepare(state.voiceClips); } catch (e) {
+      if (version !== transportVersion) return;
       console.error(e);
       ui.loading = false;
       renderTransport();
       return flash(e.message || 'AUDIO ENGINE FAILED TO LOAD. CHECK CONNECTION');
     }
-    if (!ui.loading) return; // stopped while loading
+    if (!ui.loading || version !== transportVersion) return; // cancelled loading
     ui.loading = false;
     ui.playing = true;
     ui.bar = -1;
@@ -445,7 +462,11 @@
   }
   function stop() {
     clearTimeout(evalTimer);
-    if (typeof window.hush === 'function' && repl) { try { window.hush(); } catch (e) { /* not started */ } }
+    ++transportVersion;
+    // Evaluation injects a different global hush; use the owned scheduler.
+    if (repl) repl.stop();
+    // Stop already scheduled notes and long reverb/release tails as well.
+    if (typeof window.panic === 'function') window.panic();
     ui.playing = false;
     ui.loading = false;
     ui.step = -1;
