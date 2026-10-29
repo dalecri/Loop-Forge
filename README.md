@@ -13,13 +13,26 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 - **Arrangement**: intro, build, drop, break, with a per-section on/off for every layer, a proportional timeline and a live "now playing" readout in SONG mode
 - **Built-in guide for beginners**: a "? HOW TO" guide written in plain music language (what each instrument, knob and song part does, plus a word list), a 1-minute spotlight tour, and a "?" on every panel that jumps to the right page. It opens automatically on someone's first visit.
 - **Undo / redo** for everything (Ctrl/⌘+Z, Ctrl/⌘+Shift+Z)
+- **Record + Export MP3**: capture the stereo mix, including effects and voice clips, locally at 192 kbps for up to 10 minutes
 - **My Loops**: save named loops on the device, export/import `.json` files
 - **Share links** that carry the whole loop in the URL
 - **Copy code / Open in Strudel**
 - **5 themes**: Carbon Studio (default), Neon Night, Pocket DMG, Riso Paper (light), Ember
 - **Settings**: grid size, scanlines, motion (respects reduced-motion by default)
-- **Responsive**: phone (bottom transport dock, 8-step paging), tablet and desktop
+- **Responsive**: edge-to-edge Studio workspace with a pinned transport/monitor, eight-step phone paging and all 16 touch-sized steps on iPad
 - **Installable PWA** that works offline after the first load (drum samples are cached too)
+
+## Record your music
+
+Press **RECORD** to capture your performance (playback starts if needed). Change
+layers, knobs or sections while recording. Press **STOP REC** or stop playback,
+then **EXPORT MP3** to download a playable stereo file. Recording stops at ten
+minutes. Export before reloading: completed takes stay in memory for this session.
+No microphone permission or uploads are needed; the encoder works offline after
+one online load. Use HTTPS or localhost. JSON exports still save editable projects.
+
+MP3 encoding uses [LAME](https://lame.sourceforge.net/) via the separately loaded,
+unmodified lamejs 1.2.1 library. See [license and source notices](vendor/LAME-NOTICE.md).
 
 ## Keyboard shortcuts
 
@@ -53,6 +66,9 @@ index.html            page shell
 css/style.css         layout + original themes (CSS variables per [data-theme])
 css/studio.css        Tactile Studio hardware styling
 js/app.js             state, rendering, code generation, audio
+js/recorder.js        master mix capture + MP3 download controls
+js/record-worklet.js  stereo PCM capture on the audio thread
+js/mp3-worker.js      MP3 encoding off the UI thread
 js/voice.js           local recording, WAV assets, trim/pitch editor, portable audio export
 js/guide.js           in-app guide + tour text (edit the wording here)
 vendor/strudel-web.js bundled @strudel/web (audio engine)

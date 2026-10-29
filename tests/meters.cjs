@@ -62,18 +62,7 @@ const server=http.createServer((req,res)=>{
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width);
     await page.screenshot({path:'/tmp/loop-forge-nav-'+width+'.png'});
   }
-  const frame=()=>page.locator('#studio-aurora').evaluate(e=>e.toDataURL());
-  await page.emulateMedia({reducedMotion:'reduce'});
-  await page.waitForTimeout(100);const still=await frame();
-  await page.waitForTimeout(120);assert.equal(await frame(),still,'reduced motion freezes aurora');
-  await page.emulateMedia({reducedMotion:'no-preference'});
-  await page.waitForTimeout(150);assert.notEqual(await frame(),still,'aurora animates again');
-  await page.evaluate(()=>document.documentElement.dataset.motion='off');
-  await page.waitForTimeout(100);const off=await frame();
-  await page.waitForTimeout(120);assert.equal(await frame(),off,'motion setting freezes aurora');
-  await page.evaluate(()=>document.documentElement.dataset.theme='paper');
-  assert.equal(await page.locator('#studio-aurora').isVisible(),false,'aurora only belongs to studio');
-  await page.evaluate(()=>{document.documentElement.dataset.theme='studio';document.documentElement.dataset.motion='auto';});
+  assert.equal(await page.locator('#studio-aurora').count(),0,'decorative background removed');
   // Check the actual short synthesis buffer and the persisted mute switch.
   await page.evaluate(()=>{
     window.clicks=[];

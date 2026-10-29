@@ -12,14 +12,9 @@
   <link rel="preload" href="fonts/silkscreen-400-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/pixelify-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/vt323-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <style>
-    /* Keep decorative canvas out of document flow even during an asset update. */
-    #studio-aurora { display:none; position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
-    html[data-theme="studio"] #studio-aurora { display:block; }
-  </style>
-  <link rel="stylesheet" href="css/style.css?v=20261029-render-2">
-  <link rel="stylesheet" href="css/studio.css?v=20261029-render-2">
-  <link rel="stylesheet" href="css/carbon.css?v=20261029-render-2">
+  <link rel="stylesheet" href="css/style.css?v=20261029-workspace-1">
+  <link rel="stylesheet" href="css/studio.css?v=20261029-workspace-1">
+  <link rel="stylesheet" href="css/carbon.css?v=20261029-workspace-1">
   <script>
     // Apply the saved look before first paint so there's no theme flash.
     try {
@@ -32,7 +27,6 @@
   </script>
 </head>
 <body>
-  <canvas id="studio-aurora" aria-hidden="true"></canvas>
   <div class="fx-checker" aria-hidden="true"></div>
   <div class="fx-scan" aria-hidden="true"></div>
 
@@ -69,8 +63,14 @@
       </div>
     </header>
 
+    <div class="recording-bar full" role="group" aria-label="Record your music">
+      <button class="btn" id="mix-record" data-act="record-mix" aria-pressed="false">● RECORD</button>
+      <span id="mix-status" role="status" aria-live="polite">Record your mix · up to 10 minutes</span>
+      <button class="btn" id="mix-export" data-act="export-mp3" disabled>↓ EXPORT MP3</button>
+    </div>
+
     <!-- Step grid -->
-    <section class="panel full" aria-labelledby="grid-title">
+    <section class="panel full sequencer-panel" aria-labelledby="grid-title">
       <div class="bar bar-grid">
         <span id="grid-title">01 / SEQUENCER</span>
         <span class="bar-r"><small id="sel-hint"></small><button class="help-btn" data-act="guide" data-arg="grid" aria-label="Help: step grid" title="What is this?">?</button></span>
@@ -188,10 +188,10 @@
   <input type="file" id="voice-file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.aac,.flac" hidden>
   <input type="file" id="import-file" accept="application/json,.json" hidden>
 
-  <script src="vendor/strudel-web.js?v=20261029-render-2" defer></script>
-  <script src="js/guide.js?v=20261029-render-2" defer></script>
-  <script src="js/voice.js?v=20261029-render-2" defer></script>
-  <script src="js/app.js?v=20261029-render-2" defer></script>
-  <script src="js/aurora.js?v=20261029-render-2" defer></script>
+  <script src="vendor/strudel-web.js?v=20261029-workspace-1" defer></script>
+  <script src="js/guide.js?v=20261029-workspace-1" defer></script>
+  <script src="js/voice.js?v=20261029-workspace-1" defer></script>
+  <script src="js/recorder.js?v=20261029-workspace-1" defer></script>
+  <script src="js/app.js?v=20261029-workspace-1" defer></script>
 </body>
 </html>

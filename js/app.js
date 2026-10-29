@@ -442,7 +442,7 @@
 
   // ── audio ───────────────────────────────────────────────────────
   let repl = null, replPromise = null, evalTimer = 0;
-  let transportVersion = 0, evaluationQueue = Promise.resolve();
+  let transportVersion = 0, evaluationQueue = Promise.resolve(), mixStarting = false;
   function warmAudio() {
     if (replPromise) return replPromise;
     if (typeof window.initStrudel !== 'function') return Promise.reject(new Error('strudel not loaded'));
@@ -496,6 +496,7 @@
     await evaluate();
   }
   function stop() {
+    window.LFRecorder?.stop();
     clearTimeout(evalTimer);
     evalTimer = 0;
     ++transportVersion;
@@ -1276,6 +1277,27 @@
       if (!s || !confirm('Delete "' + s.name + '"?')) return;
       setSlots(slots.filter(x => x.id !== id)); renderLoops();
     },
+    'record-mix': async () => {
+      if (mixStarting) return;
+      if (LFRecorder.busy) return LFRecorder.stop();
+      const version = transportVersion, button = $('mix-record');
+      mixStarting = true; button.disabled = true; button.textContent = 'STARTING…';
+      try {
+        // Resume in the tap handler, before any asynchronous loading (iOS).
+        const context = window.getAudioContext();
+        await context.resume();
+        await warmAudio();
+        if (version !== transportVersion) return;
+        if (!await LFRecorder.start(context)) return;
+        if (!ui.playing) await togglePlay();
+        if (!ui.playing) LFRecorder.stop();
+      } catch (e) { LFRecorder.stop(); flash(e.message || 'RECORDING FAILED'); }
+      finally {
+        mixStarting = false;
+        if (!LFRecorder.busy) { button.disabled = false; button.textContent = '● RECORD'; }
+      }
+    },
+    'export-mp3': () => LFRecorder.download(),
     export: exportLoop,
     import: () => $('import-file').click()
   };
@@ -1424,7 +1446,7 @@
     else if (firstVisit) openGuide('start');
     requestAnimationFrame(tick);
     if (!window.LoopForgeAndroid && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      navigator.serviceWorker.register('sw.js?v=20261029-render-2', { updateViaCache: 'none' }).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261029-workspace-1', { updateViaCache: 'none' }).catch(() => {});
     }
   }
   boot();

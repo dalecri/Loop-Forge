@@ -345,7 +345,68 @@ html[data-theme="studio"] {
   }
 }
 
-/* Violet Storm is confined to the backdrop; controls remain opaque. */
-#studio-aurora { display:none; position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
-html[data-theme="studio"] #studio-aurora { display:block; opacity:.72; }
-html[data-theme="studio"] .app { background:transparent !important; }
+/* Edge-to-edge workspace: spend space on instruments instead of outer cards. */
+html[data-theme="studio"] {
+  .app { width:100%; max-width:none; margin:0; padding:0 0 env(safe-area-inset-bottom); gap:1px; border:0; border-radius:0; box-shadow:none !important; background:var(--well-line) !important; }
+  .panel { border:0; border-radius:0 !important; box-shadow:none !important; }
+  .hero { border:0; border-bottom:1px solid var(--well-line); padding:8px max(12px,env(safe-area-inset-left)); gap:12px; }
+  .hero-row { flex-wrap:wrap; }
+  .hero-actions .btn,.hero-actions .mode,.hero-actions .play { min-height:44px; }
+  .hero-actions .btn-icon { width:44px; }
+  .recording-bar { display:flex; align-items:center; gap:12px; padding:8px 12px; background:var(--page); }
+  .recording-bar .btn { min-height:44px; white-space:nowrap; }
+  #mix-status { flex:1; font:11px/1.4 var(--ui-font); color:var(--soft); font-variant-numeric:tabular-nums; }
+  #mix-record[aria-pressed="true"] { background:var(--accent) !important; color:var(--on-accent) !important; }
+  .sequencer-panel > .body { padding:12px !important; gap:12px !important; }
+  .bar { min-height:36px; padding:8px 12px; }
+  .chips { flex-wrap:wrap; overflow:visible; gap:6px; padding:0; }
+  .chip { min-width:125px; padding:4px 6px; }
+  .chip-name,.chip-power { min-height:44px; }
+  .chip-power { min-width:44px; }
+  .chip-key { display:none; }
+  .tools { gap:8px; padding:0; }
+  .tool,.key,.tab { min-height:44px; }
+  .grid { border:0; border-radius:8px; padding:10px 0; gap:8px; }
+  .grid-row { gap:8px; }
+  .grid-label { width:40px; font-size:11px; }
+  .grid-cells { gap:6px; }
+  .cell { height:clamp(44px,5vw,72px); border-radius:8px; }
+  .step-dot { width:6px; height:6px; }
+  .body { padding:12px; }
+  .foot { padding:16px 12px; background:var(--page); }
+}
+@media(min-width:761px) and (max-width:1100px) {
+  html[data-theme="studio"] .hero { grid-template-columns:minmax(0,1fr) 200px; }
+  html[data-theme="studio"] .hero .title { font-size:20px; }
+  html[data-theme="studio"] .hero-actions { flex-wrap:wrap; }
+  html[data-theme="studio"] .grid-cells { gap:3px; }
+  html[data-theme="studio"] .grid-label { width:32px; }
+}
+@media(max-width:760px) {
+  html[data-theme="studio"] {
+    .hero { top:0; padding:6px 8px; }
+    .hero-actions .btn { min-height:44px; }
+    .hero-actions .btn-icon { width:100%; }
+    .recording-bar { flex-wrap:wrap; gap:8px; padding:8px; }
+    #mix-status { order:2; flex-basis:100%; font-size:10px; }
+    #mix-export { margin-left:auto; }
+    .sequencer-panel > .body { padding:8px !important; }
+    .chip { min-width:100px; }
+    .grid-label { width:28px; font-size:9px; }
+    .grid-row,.grid-cells { gap:3px; }
+    .cell { height:44px; }
+  }
+}
+@media(max-width:600px) {
+  html[data-theme="studio"] .cell { height:auto; min-height:36px; aspect-ratio:1; }
+}
+/* Recording is also available in the alternate themes. */
+.recording-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px; }
+#mix-status { flex:1; font-size:12px; }
+@media(min-width:761px) and (max-width:800px) {
+  html[data-theme="studio"] {
+    .sequencer-panel > .body { padding:4px !important; }
+    .grid-label { width:24px; font-size:9px; }
+    .grid-row,.grid-cells { gap:2px; }
+  }
+}

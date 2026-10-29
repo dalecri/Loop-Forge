@@ -149,6 +149,7 @@ window.LOOP_FORGE_GUIDE = [
 <dl class="g-defs">
   <dt>Auto-save</dt><dd>Your current loop saves itself on this device. Close the page and it's there next time.</dd>
   <dt>LOOPS</dt><dd>Keep as many named loops as you like. <b>LOAD</b> brings one back, <b>SAVE</b> on a loop replaces it with what you have now, <b>✕</b> deletes it.</dd>
+  <dt>RECORD / EXPORT MP3</dt><dd>Press RECORD to capture your music, including effects and voice clips. STOP REC finishes the take; EXPORT MP3 downloads it. You can record up to 10 minutes. Export before closing or reloading the page.</dd>
   <dt>EXPORT / IMPORT</dt><dd>Saves a loop as a small file, handy for moving to another device or keeping a backup.</dd>
   <dt>SHARE LINK</dt><dd>Copies a link that opens your exact loop for anyone. No account needed.</dd>
   <dt>↶ ↷</dt><dd>Undo and redo any change.</dd>
