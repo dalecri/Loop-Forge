@@ -239,7 +239,7 @@
     playing: false, loading: false, step: -1, bar: -1, showCode: false, page: 'a', toastTimer: 0, tour: -1, guideTab: 'start',
     undo: [], redo: [], lastCo: { key: null, t: 0 }, gestureSnap: null, taps: []
   };
-  let settings = Object.assign({ theme: 'studio', scanlines: false, motion: 'auto', cells: 'cozy' }, lsGet(SETTINGS_KEY, {}));
+  let settings = Object.assign({ theme: 'studio', uiSounds: true, scanlines: false, motion: 'auto', cells: 'cozy' }, lsGet(SETTINGS_KEY, {}));
   const narrowMQ = window.matchMedia('(max-width: 600px)');
 
   // ── history / commit ────────────────────────────────────────────
@@ -284,7 +284,7 @@
     flash('REDO');
   }
   // Drags (meters, grid painting) record one undo step for the whole gesture.
-  function beginGesture() { ui.gestureSnap = snapshot(); }
+  function beginGesture() { clearTimeout(ui.meterRender); ui.gestureSnap = snapshot(); }
   function endGesture() {
     if (ui.gestureSnap == null) return;
     if (snapshot() !== ui.gestureSnap) {
@@ -407,6 +407,39 @@
     return lines.join('\n');
   }
 
+  // Short filtered-noise + body transient: a physical switch, not a beep.
+  // Separate from Strudel so stopping a loop never disables UI feedback.
+  let clickAudio = null, clickBuffer = null, lastClick = -Infinity;
+  function controlClick() {
+    if (!settings.uiSounds || document.querySelector('#dlg-voice[open]')) return;
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      if (!clickAudio || clickAudio.state === 'closed') {
+        clickAudio = new Audio();
+        lastClick = -Infinity;
+        clickBuffer = clickAudio.createBuffer(1, Math.ceil(clickAudio.sampleRate * 0.035), clickAudio.sampleRate);
+        const data = clickBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          const t = i / clickAudio.sampleRate;
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 220)
+            + 0.35 * Math.sin(2 * Math.PI * 650 * t) * Math.exp(-t * 150);
+        }
+      }
+      if (clickAudio.state === 'suspended') clickAudio.resume().catch(() => {});
+      const now = clickAudio.currentTime;
+      if (now - lastClick < 0.025) return;
+      lastClick = now;
+      const source = clickAudio.createBufferSource(), filter = clickAudio.createBiquadFilter(), gain = clickAudio.createGain();
+      source.buffer = clickBuffer;
+      filter.type = 'lowpass'; filter.frequency.value = 4200;
+      gain.gain.value = 0.12;
+      source.connect(filter); filter.connect(gain); gain.connect(clickAudio.destination);
+      source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+      source.start(now);
+    } catch (e) { /* Optional feedback must never block a control. */ }
+  }
+
   // ── audio ───────────────────────────────────────────────────────
   let repl = null, replPromise = null, evalTimer = 0;
   let transportVersion = 0, evaluationQueue = Promise.resolve();
@@ -436,10 +469,12 @@
     });
     return evaluationQueue;
   }
-  function scheduleEval() {
+  function scheduleEval(live = false) {
     if (!ui.playing) return;
+    // Drag updates are throttled, not postponed until the pointer stops moving.
+    if (live && evalTimer) return;
     clearTimeout(evalTimer);
-    evalTimer = setTimeout(evaluate, 120);
+    evalTimer = setTimeout(() => { evalTimer = 0; evaluate(); }, live ? 60 : 120);
   }
   async function togglePlay() {
     if (ui.playing || ui.loading) return stop();
@@ -462,6 +497,7 @@
   }
   function stop() {
     clearTimeout(evalTimer);
+    evalTimer = 0;
     ++transportVersion;
     // Evaluation injects a different global hush; use the owned scheduler.
     if (repl) repl.stop();
@@ -636,6 +672,7 @@
     if (!row || row[si] === val) return;
     row[si] = val;
     el.setAttribute('aria-pressed', String(val));
+    controlClick();
     scheduleEval();
   }
   function cellAt(x, y) {
@@ -691,7 +728,7 @@
     const rotary = key.startsWith('p:');
     return '<div class="meter ' + extraClass + (rotary ? ' rotary' : '') + '" role="slider" tabindex="0" data-meter="' + key + '" style="--c:var(--' + m.color + ');--turn:' + (-135 + frac * 270) + 'deg;--position:' + (frac * 100) + '%"' +
       ' aria-label="' + esc(m.label) + '" aria-valuemin="' + m.rg[0] + '" aria-valuemax="' + m.rg[1] + '" aria-valuenow="' + m.v + '"' +
-      ' aria-valuetext="' + esc(fmt(key, m.v)) + '" title="' + (rotary && settings.theme === 'studio' ? 'Drag up or down; use arrow keys for fine control' : 'Drag left or right; use arrow keys for fine control') + '">' + segsHTML(frac) + (rotary ? '<span class="dial-face" aria-hidden="true"></span>' : '') + '</div>';
+      ' aria-valuetext="' + esc(fmt(key, m.v)) + '" title="' + (rotary && settings.theme === 'studio' ? 'Drag right or up to increase; left or down to decrease. Hold Shift for fine control' : 'Drag left or right; use arrow keys for fine control') + '">' + segsHTML(frac) + (rotary ? '<span class="dial-face" aria-hidden="true"></span>' : '') + '</div>';
   }
   function patchMeter(el) {
     const key = el.dataset.meter, m = meterSpec(key);
@@ -707,14 +744,28 @@
   function meterFromPointer(e) {
     const el = drag.el, m = meterSpec(el.dataset.meter);
     const r = el.getBoundingClientRect();
-    const f = drag.rotary
-      ? clamp(drag.start + (drag.y - e.clientY) / 180, 0, 1)
-      : clamp((e.clientX - r.left - 4) / (r.width - 8), 0, 1);
+    let f;
+    if (drag.rotary) {
+      const dx = e.clientX - drag.x, dy = drag.y - e.clientY;
+      // Pick the user's intended axis once per drag; diagonal jitter cannot
+      // reverse the knob or add extra sensitivity.
+      if (!drag.axis) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 3) return;
+        drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+      }
+      const delta = drag.axis === 'x' ? dx : dy;
+      drag.fraction = clamp(drag.fraction + delta / (e.shiftKey ? 900 : 180), 0, 1);
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      f = drag.fraction;
+    } else {
+      f = clamp((e.clientX - r.left - 4) / (r.width - 8), 0, 1);
+    }
     const v = snap(m.rg[0] + f * (m.rg[1] - m.rg[0]), m.rg);
     if (v === m.v) return;
     m.set(v);
     patchMeter(el);
-    scheduleEval();
+    scheduleEval(true);
   }
   function meterKey(e, el) {
     const key = el.dataset.meter, m = meterSpec(key), st = m.rg[2];
@@ -740,6 +791,7 @@
 
   // ── rendering ───────────────────────────────────────────────────
   function render() {
+    clearTimeout(ui.meterRender);
     // Keep keyboard focus on the "same" control across innerHTML swaps.
     const a = document.activeElement;
     const fk = a && a !== document.body ? focusKey(a) : null;
@@ -1053,6 +1105,7 @@
         '<button class="theme-btn" data-act="setting" data-arg="theme:' + t.id + '" aria-pressed="' + (settings.theme === t.id) + '">' +
         '<span class="swatch">' + t.sw.map(c => '<i style="background:' + c + '"></i>').join('') + '</span><span>' + t.name + '</span></button>').join('') + '</div>' +
       '<div class="label">GRID SIZE</div><div class="seg-ctrl">' + opt('cells', 'cozy', 'COZY') + opt('cells', 'chunky', 'CHUNKY') + '</div>' +
+      '<div class="label">CLICK SOUNDS</div><div class="seg-ctrl">' + opt('uiSounds', true, 'ON') + opt('uiSounds', false, 'OFF') + '</div>' +
       '<div class="label">SCANLINES</div><div class="seg-ctrl">' + opt('scanlines', true, 'ON') + opt('scanlines', false, 'OFF') + '</div>' +
       '<div class="label">MOTION</div><div class="seg-ctrl">' + opt('motion', 'auto', 'MATCH SYSTEM') + opt('motion', 'on', 'ON') + opt('motion', 'off', 'OFF') + '</div>' +
       '<div class="rule"></div><div class="label">KEYBOARD SHORTCUTS</div>' +
@@ -1232,13 +1285,13 @@
     const cell = e.target.closest('.cell');
     if (cell) {
       // Pointer taps are handled on pointerdown; this is keyboard activation (Enter).
-      if (e.detail === 0) commit(st => { const r = st.layers[st.sel].steps[+cell.dataset.r]; r[+cell.dataset.s] = !r[+cell.dataset.s]; });
+      if (e.detail === 0) { commit(st => { const r = st.layers[st.sel].steps[+cell.dataset.r]; r[+cell.dataset.s] = !r[+cell.dataset.s]; }); controlClick(); }
       return;
     }
     const el = e.target.closest('[data-act]');
     if (!el || el.disabled) return;
     const fn = actions[el.dataset.act];
-    if (fn) fn(el.dataset.arg, el, e);
+    if (fn) { fn(el.dataset.arg, el, e); controlClick(); }
   });
 
   document.addEventListener('submit', e => {
@@ -1251,9 +1304,12 @@
     if (cell) { onCellDown(e, cell); return; }
     const meter = e.target.closest('.meter');
     if (meter) {
+      if (drag) return;
+      e.preventDefault();
       beginGesture();
       const m = meterSpec(meter.dataset.meter);
-      drag = { el: meter, pointerId: e.pointerId, y: e.clientY, start: (m.v - m.rg[0]) / (m.rg[1] - m.rg[0]), rotary: settings.theme === 'studio' && meter.classList.contains('rotary') };
+      drag = { el: meter, pointerId: e.pointerId, x: e.clientX, y: e.clientY, axis: null, fraction: (m.v - m.rg[0]) / (m.rg[1] - m.rg[0]), rotary: settings.theme === 'studio' && meter.classList.contains('rotary') };
+      meter.classList.add('is-dragging');
       meter.focus({ preventScroll: true });
       try { meter.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
       meterFromPointer(e);
@@ -1265,10 +1321,13 @@
   });
   const endPointer = cancelled => e => {
     if (paint) onPaintEnd(e, cancelled);
-    if (drag && e.pointerId === drag.pointerId) { drag = null; endGesture(); }
+    if (drag && e.pointerId === drag.pointerId) { drag.el.classList.remove('is-dragging'); drag = null; endGesture(); }
   };
   document.addEventListener('pointerup', endPointer(false));
   document.addEventListener('pointercancel', endPointer(true));
+  document.addEventListener('lostpointercapture', e => {
+    if (drag && e.target === drag.el) endPointer(true)(e);
+  });
 
   // First touch anywhere starts the audio engine + sample download in the
   // background (and inside a user gesture, which mobile browsers require).

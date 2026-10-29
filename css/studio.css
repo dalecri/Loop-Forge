@@ -71,7 +71,7 @@ html[data-theme="studio"] {
   .sliders { grid-template-columns:repeat(2,minmax(0,1fr)); gap:26px 12px; }
   #knobs .slider { align-items:center; gap:12px; }
   #knobs .slider-head { flex-direction:column; align-items:center; gap:5px; }
-  .rotary.meter { width:78px; height:78px; flex:none; padding:7px; border:1px solid var(--well-line); border-radius:50%; cursor:ns-resize; }
+  .rotary.meter { width:78px; height:78px; flex:none; padding:7px; border:1px solid var(--well-line); border-radius:50%; cursor:grab; }
   .rotary .seg { display:none; }
   .dial-face { display:block; position:absolute; inset:5px; border-radius:50%; border:1px solid var(--well-line); }
   .dial-face::after { content:''; position:absolute; width:4px; height:13px; left:calc(50% - 2px); top:7px; border-radius:2px; transform-origin:2px 26px; transform:rotate(var(--turn)); }
@@ -298,3 +298,54 @@ html[data-theme="studio"] {
 @media(max-width:600px) {
   html[data-theme="studio"] .cell { height:auto; aspect-ratio:1; }
 }
+
+html[data-theme="studio"] .rotary.meter { user-select:none; -webkit-user-select:none; }
+html[data-theme="studio"] .rotary.meter.is-dragging { cursor:grabbing; }
+
+/* Persistent transport and compact live monitor. The header stays in flow,
+   then pins to the viewport so no content is covered at the top of the page. */
+html[data-theme="studio"] {
+  .hero {
+    position:sticky !important; top:0; z-index:45;
+    display:grid; grid-template-columns:minmax(0,1fr) 250px; align-items:center;
+    gap:14px; padding:12px;
+    background:var(--page) !important; border:1px solid var(--well-line);
+    box-shadow:var(--shadow) !important;
+  }
+  .bar-hero,.hero .tagline,.hero .speaker { display:none; }
+  .hero-row { padding:0; gap:10px; }
+  .hero .title { font-size:24px; white-space:nowrap; }
+  .hero-actions { gap:6px; }
+  .hero-actions .btn,.hero-actions .mode,.hero-actions .play { height:40px; min-width:0; padding:0 10px; }
+  .hero-actions .btn-icon { width:36px; padding:0; }
+  .studio-console { display:block; padding:0; border:0; box-shadow:none !important; }
+  .studio-screen { border-width:1px; padding:8px 10px; border-radius:11px; }
+  .screen-top,.screen-bottom { font-size:8px; letter-spacing:0; }
+  .sequence-bars { height:22px; gap:4px; margin:5px 0; }
+  .now { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .panel:not(.hero),.meter,.cell { scroll-margin-top:190px; }
+  .dock { display:none; }
+}
+@media(max-width:760px) {
+  html[data-theme="studio"] {
+    .app { padding-bottom:24px; }
+    .hero { grid-template-columns:minmax(0,1fr); gap:8px; padding:8px; top:env(safe-area-inset-top,0px); }
+    .hero-row { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; }
+    .hero .brand { grid-column:span 3; min-width:0; }
+    .hero .title { font-size:18px; }
+    .hero-actions { display:contents; }
+    .hero-actions .mode { order:0; grid-column:span 1; }
+    .hero-actions .play { order:0; grid-column:span 2; }
+    .hero-actions .btn { order:1; width:100%; padding:0 3px; height:32px; }
+    .hero-actions .btn-help { grid-column:span 2; margin:0; }
+    .hero-actions .play,.hero-actions .mode,.hero-actions [data-undo],.hero-actions [data-redo] { display:inline-flex; align-items:center; justify-content:center; }
+    .hero-actions .play,.hero-actions .mode { padding:0 3px; height:36px; font-size:10px; }
+    .studio-screen { padding:6px 8px; }
+    .sequence-bars { height:18px; margin:3px 0; }
+  }
+}
+
+/* Violet Storm is confined to the backdrop; controls remain opaque. */
+#studio-aurora { display:none; position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+html[data-theme="studio"] #studio-aurora { display:block; opacity:.72; }
+html[data-theme="studio"] .app { background:transparent !important; }

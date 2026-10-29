@@ -18,5 +18,8 @@ function fixture() {
   const c=fixture();await c.togglePlay();const compile=deferred();c.engine.evaluate=()=>compile.promise;const active=c.evaluate();await new Promise(r=>setImmediate(r));c.stop();compile.resolve();await active;assert.equal(c.calls.start,1,'late compile cannot resume stopped audio');
   const d=fixture();const warm=deferred();d.ctx.window.initStrudel=()=>warm.promise;const first=d.togglePlay();d.stop();const second=d.togglePlay();warm.resolve(d.engine);await Promise.all([first,second]);assert.equal(d.calls.start,1,'only newest loading request starts playback');
   const e=fixture();await e.togglePlay();e.scheduleEval();e.stop();await new Promise(r=>setTimeout(r,150));assert.equal(e.calls.evaluate,1,'stop cancels debounced edits');
+  const live=fixture();await live.togglePlay();
+  for(let i=0;i<8;i++){live.scheduleEval(true);await new Promise(r=>setTimeout(r,25));}
+  assert(live.calls.evaluate>=3,'continuous dragging updates audio before release');live.stop();
   console.log('PASS: instance stop, panic, live edits, preparation/compile/loading races, pending debounce');
 })().catch(e=>{console.error(e);process.exitCode=1;});
