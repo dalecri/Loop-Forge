@@ -1,20 +1,22 @@
 // Loop Forge service worker: offline app shell + cached drum samples.
 // Bump CACHE when shipping changes to the app files.
-const CACHE = 'loopforge-quiet-pixel-aurora-v1';
+const VERSION = '20261029-render-2';
+const CACHE = 'loopforge-' + VERSION;
 const SAMPLES = 'loopforge-samples-v1';
 const SHELL = [
-  './', 'index.html', 'css/style.css', 'css/studio.css', 'css/carbon.css', 'js/guide.js', 'js/app.js', 'js/aurora.js', 'js/voice.js', 'vendor/strudel-web.js', 'icon.svg', 'manifest.webmanifest',
+  './', 'index.html', 'icon.svg', 'manifest.webmanifest',
+  ...['css/style.css', 'css/studio.css', 'css/carbon.css', 'js/guide.js', 'js/app.js', 'js/aurora.js', 'js/voice.js', 'vendor/strudel-web.js'].map(path => path + '?v=' + VERSION),
   'fonts/AlphaLyrae-Medium.woff2', 'fonts/space-mono-400-latin.woff2', 'fonts/space-mono-700-latin.woff2',
   'fonts/pixelify-sans-latin.woff2', 'fonts/silkscreen-400-latin.woff2', 'fonts/vt323-latin.woff2'
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(path => new Request(path, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== SAMPLES).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k.startsWith('loopforge-') && k !== CACHE && k !== SAMPLES).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -37,9 +39,22 @@ self.addEventListener('fetch', e => {
 
   if (url.origin !== location.origin) return;
 
-  // App files: network-first so updates land immediately, cache as fallback.
-  e.respondWith(fetch(req).then(res => {
-    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-    return res;
-  }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('index.html'))));
+  // Versioned assets must never fall back to a different release's CSS/JS.
+  // HTML is a navigation fallback only, never a stylesheet or script response.
+  e.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    try {
+      const res = await fetch(req, { cache: 'no-cache' });
+      if (res.ok) {
+        await cache.put(req, res.clone());
+        return res;
+      }
+      return (await cache.match(req)) || res;
+    } catch (err) {
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      if (req.mode === 'navigate') return (await cache.match('index.html')) || Response.error();
+      return Response.error();
+    }
+  })());
 });
