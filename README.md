@@ -8,7 +8,8 @@ Tap pixel blocks, get music, steal the code. Loop Forge is a pocket step sequenc
 - **16-step grid** with drag-to-paint (swipe sideways on touch screens, scroll vertically as normal)
 - **Note names on the grid** that follow your root note and scale
 - **Tempo, tap tempo, swing**, 12 root notes and 7 scales
-- **Starters** (Hyperpop, Prog House, Pluck, Lo-Fi, Techno, Roll Dice) and **"Make it more…"** nudges
+- **Starters** (Hyperpop, Prog House, Pluck, Lo-Fi, Techno, Best Friend, Swirl, Electric Feel, Roll Dice) and **"Make it more…"** nudges
+- **Dream mode**: a lens over any loop. It re-voices harmony as extended chords over a 4-bar progression (Daydream, Swirl, Nightswim, Electric), scale-locks melodies, swaps in soft timbres, adds seeded swing and humanize, and washes everything with Haze (lowpass, reverb, dotted-eighth delay, tape hiss above 70) and Wobble (vibrato and pitch drift). The grid never changes; switching it off returns the exact original code. **Drift** writes a sparse pentatonic phrase into the selected melody layer
 - **Layer tools**: shift left/right, randomize, clear
 - **Arrangement**: intro, build, drop, break, with a per-section on/off for every layer, a proportional timeline and a live "now playing" readout in SONG mode
 - **Built-in guide for beginners**: a "? HOW TO" guide written in plain music language (what each instrument, knob and song part does, plus a word list), a 1-minute spotlight tour, and a "?" on every panel that jumps to the right page. It opens automatically on someone's first visit.
@@ -44,6 +45,7 @@ unmodified lamejs 1.2.1 library. See [license and source notices](vendor/LAME-NO
 | Shift + 1 – 4 | Pick a section |
 | M | Loop / song |
 | T | Tap tempo |
+| D | Dream on / off |
 | C | Show / hide code |
 | Ctrl/⌘ + Z | Undo (add Shift to redo) |
 | ← → | Adjust a focused slider |
@@ -65,6 +67,7 @@ Opening `index.html` directly works too, minus the offline service worker. It al
 index.html            page shell
 css/style.css         layout + original themes (CSS variables per [data-theme])
 css/studio.css        Tactile Studio hardware styling
+css/dream.css         Dream mode controls (inherit each theme's tokens)
 js/app.js             state, rendering, code generation, audio
 js/recorder.js        master mix capture + MP3 download controls
 js/record-worklet.js  stereo PCM capture on the audio thread
@@ -187,3 +190,23 @@ and alias `loopforge`; it is only for this personal test app, not a production k
 Validation: browser audio integration/portable export tests, Android bridge dispatch,
 responsive screenshots, Java/D8 compilation, APK v2/v3 signatures and zip alignment.
 Physical-device microphone, file-picker and install checks remain to be done on Android.
+
+## Dream mode
+
+Dream is stored in the loop (and in share links) as `dream: { on, prog, haze, swing, wobble, bpm, seed, drift }`.
+Links and saves from before Dream mode have no `dream` field and load with it off.
+
+- Everything happens in the generated Strudel: `chord("<…>").voicing()` for pads, the bass walking
+  each chord's mode via `.scale("<…>")`, `.swingBy()`, `.vib()`, `.room()/.roomsize()`, `.delay()`.
+  Humanize is written out as explicit `.velocity("…")` and `.nudge("…")` patterns from the loop's
+  seed, so copied code and shared links play the identical take.
+- Dream tempo (68–96 BPM) and swing (0–30%) are separate from your own; switching Dream off
+  restores them. The key and scale controls stay in charge: major-family scales dream in major
+  (melodies in major pentatonic), minor-family scales dream in dorian, and each progression is
+  placed inside that key signature.
+- Keys use a triangle with tremolo, because the bundled engine has no electric-piano sound set.
+
+Run `node tests/dream.cjs` (Playwright) to check that Dream-off output matches the previous
+release byte for byte, old links load unchanged, every starter and progression compiles in the
+bundled Strudel, dream links reproduce exactly, Drift behaves, and the phone layout fits.
+

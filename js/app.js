@@ -137,6 +137,61 @@
     }
   };
 
+  // ── dream mode ──────────────────────────────────────────────────
+  // A processing lens over the grid. It rewrites the emitted Strudel only and
+  // never touches the steps, so switching it off returns the exact original code.
+  const DREAM_BPM = [68, 96, 1];
+  const DREAM_R = { haze: [0, 100, 1], swing: [0, 30, 1], wobble: [0, 100, 1] };
+  const DREAM_DEFAULT = { on: false, prog: 'daydream', haze: 55, swing: 12, wobble: 40, bpm: 78, seed: 0, drift: 0 };
+  // Each chord: [semitones above home, iReal chord symbol, mode the bass walks in].
+  // `home` is a major or dorian centre placed inside the user's key signature.
+  const PROGS = {
+    daydream: { name: 'DAYDREAM', home: 'major', chords: [[0, '^7', 'ionian'], [4, '-7', 'phrygian'], [5, '^7', 'lydian'], [7, '7sus', 'mixolydian']] },
+    swirl: { name: 'SWIRL', home: 'major', chords: [[9, '-7', 'aeolian'], [5, '^7', 'lydian'], [0, '^7', 'ionian'], [7, '9', 'mixolydian']] },
+    nightswim: { name: 'NIGHTSWIM', home: 'dorian', chords: [[0, '-9', 'dorian'], [10, 'add9', 'ionian'], [8, '^7', 'lydian'], [10, 'add9', 'ionian']] },
+    electric: { name: 'ELECTRIC', home: 'major', chords: [[0, 'add9', 'ionian'], [10, 'add9', 'lydian'], [5, '^7', 'lydian'], [0, '69', 'ionian']] }
+  };
+  const PROG_IDS = Object.keys(PROGS);
+  const MELODIC = ['lead', 'vox', 'arp'];
+  const ALL_SCALES = Object.assign({ 'major pentatonic': [0, 2, 4, 7, 9] }, SCALES);
+  const FLAT = { 'C#': 'Db', 'D#': 'Eb', 'G#': 'Ab', 'A#': 'Bb' };
+
+  // Dream starters are ordinary loops plus dream settings; the engine does the rest.
+  Object.assign(PRESETS, {
+    bestfriend: {
+      name: 'BEST FRIEND', full: 'BEST FRIEND', bpm: 76, keyRoot: 'D', scaleName: 'major', swing: 0,
+      dream: { prog: 'daydream', haze: 50, swing: 14, wobble: 35, seed: 1105 },
+      pat: {
+        drums: { 0: 'x.......x.x.....', 1: '....x.......x...', 2: '..x...x...x...x.' },
+        bass: { 7: 'x.......x.....x.' },
+        chords: { 7: 'x...............', 5: 'x...............', 3: 'x...............' },
+        arp: { 7: 'x.......x.......', 5: '...x.......x....', 3: '......x.......x.', 0: '...........x....' },
+        lead: { 3: '..........x.....', 4: '............x...' }
+      }
+    },
+    swirl: {
+      name: 'SWIRL', full: 'SWIRL', bpm: 72, keyRoot: 'F', scaleName: 'major', swing: 0,
+      dream: { prog: 'swirl', haze: 86, swing: 10, wobble: 72, seed: 2207 },
+      pat: {
+        drums: { 0: 'x.........x.....', 1: '........x.......', 2: '..x...x...x...x.' },
+        bass: { 7: 'x.......x.......' },
+        chords: { 7: 'x.......x.......', 5: 'x.......x.......', 3: 'x.......x.......' },
+        lead: { 3: '....x...........', 2: '......x.........', 4: '..............x.' },
+        vox: { 1: '..........x.....' }
+      }
+    },
+    electricfeel: {
+      name: 'ELECTRIC FEEL', full: 'ELECTRIC FEEL', bpm: 92, keyRoot: 'D', scaleName: 'major', swing: 0,
+      dream: { prog: 'electric', haze: 45, swing: 24, wobble: 55, seed: 3309 },
+      pat: {
+        drums: { 0: 'x.....x...x.....', 1: '....x.......x...', 2: 'x.x.x.x.x.x.x.x.', 3: '......x.......x.' },
+        bass: { 7: 'x.....x.........', 6: '..........x.....', 5: '...x............', 3: '........x.....x.' },
+        chords: { 7: '....x.......x...', 5: '....x.......x...', 3: '....x.......x...' },
+        lead: { 3: '..x.............', 2: '......x.........' }
+      }
+    }
+  });
+
   const THEMES = [
     { id: 'studio', name: 'CARBON STUDIO', sw: ['#222527', '#ff903f', '#ff681e', '#a387f4', '#45c4d6'] },
     { id: 'neon', name: 'NEON NIGHT', sw: ['#1B0F42', '#FF6EC7', '#A16BFF', '#5CE1E6', '#FFE066'] },
@@ -162,10 +217,19 @@
 
   /** Note name for a scale degree on a note layer, e.g. "D#4". */
   function noteName(d, deg) {
-    const sc = SCALES[state.scaleName] || SCALES.minor;
+    const sc = ALL_SCALES[scaleFor(d)] || SCALES.minor;
     const semis = sc[deg % sc.length] + 12 * Math.floor(deg / sc.length);
     const abs = KEYS.indexOf(state.keyRoot) + semis;
     return KEYS[abs % 12] + (d.oct + Math.floor(abs / 12));
+  }
+  const dreamOn = () => !!(state.dream && state.dream.on);
+  const bpmNow = () => (dreamOn() ? state.dream.bpm : state.bpm);
+  const majorFamily = () => state.scaleName === 'major' || state.scaleName === 'lydian';
+  /** Melody layers lock to a soft mode inside the user's key signature. */
+  const dreamScale = id => (!majorFamily() ? 'dorian' : id === 'arp' ? 'major' : 'major pentatonic');
+  function scaleFor(d) {
+    if (!dreamOn()) return state.scaleName;
+    return MELODIC.includes(d.id) ? dreamScale(d.id) : majorFamily() ? 'major' : 'dorian';
   }
   const sectionName = id => SECTIONS.find(s => s.id === id).name;
   const rowLabel = (d, row) => (d.kind === 'note' ? noteName(d, row.deg) : row.label);
@@ -182,7 +246,8 @@
     sections.breakdown.on = { chords: true, vox: true, arp: true, pump: true };
     return {
       bpm: 148, keyRoot: 'C', scaleName: 'minor', mode: 'loop', section: 'drop', sel: 'drums', swing: 0,
-      voiceClips: [null, null, null, null], layers, sections, pumpOn: true, pumpTargets: { bass: true, chords: true, vox: false, arp: true, lead: false }
+      voiceClips: [null, null, null, null], layers, sections, pumpOn: true, pumpTargets: { bass: true, chords: true, vox: false, arp: true, lead: false },
+      dream: Object.assign({}, DREAM_DEFAULT)
     };
   }
 
@@ -198,6 +263,14 @@
     st.swing = num(raw.swing, 0, 1, 0);
     if (typeof raw.pumpOn === 'boolean') st.pumpOn = raw.pumpOn;
     if (raw.pumpTargets && typeof raw.pumpTargets === 'object') for (const id of PUMPABLE) st.pumpTargets[id] = !!raw.pumpTargets[id];
+    // Links and saves made before Dream Mode have no `dream` and load with it off.
+    const rd = raw.dream && typeof raw.dream === 'object' ? raw.dream : {};
+    st.dream.on = rd.on === true;
+    if (PROGS[rd.prog]) st.dream.prog = rd.prog;
+    for (const k of Object.keys(DREAM_R)) st.dream[k] = Math.round(num(rd[k], DREAM_R[k][0], DREAM_R[k][1], st.dream[k]));
+    st.dream.bpm = Math.round(num(rd.bpm, DREAM_BPM[0], DREAM_BPM[1], st.dream.bpm));
+    st.dream.seed = Number.isInteger(rd.seed) && rd.seed >= 0 ? rd.seed >>> 0 : 0;
+    st.dream.drift = Number.isInteger(rd.drift) && rd.drift >= 0 ? rd.drift >>> 0 : 0;
     const rs = raw.sections && typeof raw.sections === 'object' ? raw.sections : {};
     if (rs.break && !rs.breakdown) rs.breakdown = rs.break;
     for (const s of SECTIONS) {
@@ -230,8 +303,8 @@
   }
 
   const strip = st => {
-    const { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets, voiceClips } = st;
-    return { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets, voiceClips };
+    const { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets, voiceClips, dream } = st;
+    return { bpm, keyRoot, scaleName, mode, section, sel, swing, layers, sections, pumpOn, pumpTargets, voiceClips, dream };
   };
 
   let state = makeInitial();
@@ -371,6 +444,7 @@
   // swingBy(x, 8) delays every off-beat 16th by x of an 8th note; 1/6 is a full triplet shuffle.
   const swung = expr => (state.swing > 0.001 ? expr + '.swingBy(' + (state.swing / 6).toFixed(3) + ', 8)' : expr);
   function buildCode(forPlayback) {
+    if (dreamOn()) return dreamCode(forPlayback);
     const st = state, live = [], lines = [];
     if (!forPlayback && st.voiceClips.some(Boolean)) lines.push('// Voice samples are local to Loop Forge. Export the loop JSON to transfer audio. Load matching samples before using this code elsewhere.');
     lines.push('// ' + st.keyRoot + ' ' + st.scaleName + ' · ' + st.bpm + ' BPM · made in Loop Forge');
@@ -403,6 +477,208 @@
       lines.push(swung(st.section));
     } else {
       lines.push(swung('arrange(' + SECTIONS.map(s => '[' + st.sections[s.id].bars + ', ' + s.id + ']').join(', ') + ')'));
+    }
+    return lines.join('\n');
+  }
+
+  // ── dream code generation ───────────────────────────────────────
+  // Everything is string transformation on the emitted Strudel, so the code
+  // panel shows exactly what plays and pasting it into Strudel sounds the same.
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(a ^ (a >>> 15), a | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const mix = (...n) => n.reduce((h, v) => Math.imul(h ^ (v >>> 0), 2654435761) >>> 0, 2166136261);
+  const pc = i => KEYS[((i % 12) + 12) % 12];
+
+  /** Four chords for the selected progression, placed in the user's key signature. */
+  function progChords() {
+    const p = PROGS[state.dream.prog] || PROGS.daydream, root = KEYS.indexOf(state.keyRoot);
+    // A major progression in a minor-family key sits on the dorian's relative
+    // major (two semitones down); Nightswim in a major key sits on its ii.
+    const home = p.home === 'major' ? (majorFamily() ? root : root - 2) : (majorFamily() ? root + 2 : root);
+    return p.chords.map(([off, sym, mode]) => { const n = pc(home + off); return { root: n, name: (FLAT[n] || n) + sym, mode }; });
+  }
+  /** One Haze knob drives three destinations; Wobble drives pitch movement. */
+  function weather() {
+    const h = state.dream.haze / 100, w = state.dream.wobble / 100;
+    return {
+      cut: Math.round(12000 * Math.pow(0.25, h)),        // master lowpass, applied per layer
+      room: +(0.12 + 0.6 * h).toFixed(2), size: +(1 + 7 * h).toFixed(1),
+      send: +(0.08 + 0.4 * h).toFixed(2), fb: +(0.25 + 0.3 * h).toFixed(2),
+      time: +(0.75 * 60 / state.dream.bpm).toFixed(3),   // dotted eighth, seconds
+      vib: +(0.4 + 5 * w).toFixed(2),                    // vibrato rate, Hz
+      depth: +(0.02 + 0.16 * w).toFixed(3),              // semitones; 0.08 is about ±8 cents
+      trem: +(3 + 3 * w).toFixed(1)
+    };
+  }
+  const space = (H, room, send) => '.room(' + room.toFixed(2) + ').roomsize(' + H.size + ')' +
+    (send ? '.delay(' + send.toFixed(2) + ').delaytime(' + H.time + ').delayfeedback(' + H.fb + ')' : '');
+  const swirl = (H, slow) => '.vib(' + (slow ? +(H.vib / 3).toFixed(2) : H.vib) + ').vibmod(' + H.depth + ')';
+  /** Seeded velocity and late-leaning timing per step. Step 1 is never moved. */
+  function humanize(layerIdx, row, maxNudge) {
+    const r = rng(mix(state.dream.seed, layerIdx, row, 7)), vel = [], nud = [];
+    for (let s = 0; s < 16; s++) {
+      const a = r(), b = r();
+      vel.push(s === 0 ? '1' : (0.8 + a * 0.2).toFixed(2));
+      nud.push(s === 0 ? '0' : (b * maxNudge).toFixed(3));
+    }
+    return '.velocity("' + vel.join(' ') + '").nudge("' + nud.join(' ') + '")';
+  }
+  /** Hold each hit until the next (up to maxLen steps) so soft attacks can bloom. */
+  function held(on, tok, maxLen) {
+    const out = [];
+    for (let s = 0; s < 16;) {
+      let k = 1;
+      if (!on[s]) { while (s + k < 16 && !on[s + k]) k++; out.push(k > 1 ? '~@' + k : '~'); }
+      else { while (s + k < 16 && !on[s + k] && k < maxLen) k++; out.push(tok(s) + (k > 1 ? '@' + k : '')); }
+      s += k;
+    }
+    return out.join(' ');
+  }
+  /** Degree at each step: the lowest (bass) or highest (chord register) tapped note. */
+  function degAt(d, L, s, pickHigh) {
+    let v = null;
+    d.rows.forEach((row, ri) => { if (L.steps[ri] && L.steps[ri][s] && (v === null || (pickHigh ? row.deg > v : row.deg < v))) v = row.deg; });
+    return v;
+  }
+  const S16 = Array.from({ length: 16 }, (_, i) => i);
+
+  function dreamDrums(d, L, H) {
+    const lpf = Math.min(H.cut, Math.round(L.params.lpf)), hp = Math.min(3500, Math.round(lpf * 0.6));
+    // Nothing cracks: round kick, rim instead of clap, hats as short filtered noise.
+    const kit = [
+      { snd: 'bd', g: 0.75, tail: '.lpf(' + Math.min(800, lpf) + ').release(0.30)' },
+      { snd: 'rm', g: 0.3, tail: '.lpf(' + Math.min(3200, lpf) + ').release(0.20)' },
+      { snd: 'pink', g: 0.14, tail: '.decay(0.035).sustain(0).hpf(' + hp + ').lpf(' + lpf + ')' },
+      { snd: 'pink', g: 0.09, tail: '.decay(0.18).sustain(0).hpf(' + hp + ').lpf(' + lpf + ')' }
+    ];
+    const out = [];
+    kit.forEach((k, ri) => {
+      const on = L.steps[ri];
+      if (!on || !on.some(Boolean)) return;
+      out.push('  s("' + on.map(v => (v ? k.snd : '~')).join(' ') + '")' + k.tail + space(H, Math.max(L.params.room, H.room * 0.4), 0) +
+        '.gain(' + (L.params.gain * k.g).toFixed(2) + ')' + humanize(0, ri, 0.014));
+    });
+    if (!out.length) return null;
+    return out.length === 1 ? out[0].trim() : 'stack(\n' + out.join(',\n') + '\n)';
+  }
+  function dreamBass(d, L, P) {
+    const ons = S16.map(s => degAt(d, L, s, false) !== null);
+    if (!ons.some(Boolean)) return null;
+    // The tapped line keeps its shape and walks over each chord's root.
+    return 'n("' + held(ons, s => String(degAt(d, L, s, false)), 4) + '")' +
+      '.scale("<' + P.map(c => c.root + d.oct + ':' + c.mode).join(' ') + '>")' +
+      '.s("sine").attack(0.03).decay(0.3).sustain(0.8).release(0.30).lpf(' + Math.min(420, Math.round(L.params.lpf)) + ')' +
+      '.gain(' + (L.params.gain * 0.75).toFixed(2) + ')';
+  }
+  function dreamChords(d, L, H, P) {
+    const ons = S16.map(s => degAt(d, L, s, true) !== null);
+    if (!ons.some(Boolean)) return null;
+    // Rhythm and register come from the grid; the progression supplies the harmony.
+    const top = Math.max(...S16.filter(s => ons[s]).map(s => degAt(d, L, s, true)));
+    const anchor = noteName({ id: d.id, oct: d.oct + 1 }, top);
+    return 'chord("<' + P.map(c => c.name).join(' ') + '>").struct("' + held(ons, () => 'x', 16) + '").voicing().anchor("' + anchor + '")' +
+      '.s("triangle").attack(' + clamp(0.3 + L.params.env, 0.3, 1.5).toFixed(2) + ').sustain(0.85).release(2.40)' +
+      '.lpf(' + Math.min(H.cut, Math.round(L.params.lpf)) + ')' + swirl(H, true) +
+      space(H, Math.max(L.params.room, H.room), H.send) + '.gain(' + (L.params.gain * 0.8).toFixed(2) + ')';
+  }
+  function dreamMelody(d, L, H, idx) {
+    const toks = [];
+    for (let s = 0; s < 16; s++) {
+      const degs = [];
+      d.rows.forEach((row, ri) => { if (L.steps[ri] && L.steps[ri][s]) degs.push(row.deg); });
+      degs.sort((a, b) => a - b);
+      toks.push(!degs.length ? '~' : degs.length === 1 ? String(degs[0]) : '[' + degs.join(',') + ']');
+    }
+    if (toks.every(t => t === '~')) return null;
+    let line = 'n("' + toks.join(' ') + '").scale("' + state.keyRoot + d.oct + ':' + dreamScale(d.id) + '")';
+    if (d.id === 'arp') line += '.s("triangle").attack(0.008).decay(0.9).sustain(0.12).release(0.50).tremolodepth(0.25).tremolorate(' + H.trem + ')';
+    else line += '.s("' + (d.id === 'lead' ? 'sine' : 'triangle') + '").attack(0.04).decay(0.50).sustain(0.35).release(0.90)' +
+      (d.envMode === 'vowel' ? '.vowel("<a o>")' : '') + swirl(H, false);
+    return line + '.lpf(' + Math.min(H.cut, Math.round(L.params.lpf)) + ')' +
+      space(H, Math.max(L.params.room, H.room), d.id === 'arp' ? H.send * 0.6 : H.send) +
+      '.gain(' + (L.params.gain * 0.85).toFixed(2) + ')' + humanize(idx, 0, 0.02);
+  }
+  function dreamFx(d, L, H) {
+    const out = [];
+    d.rows.forEach((row, ri) => {
+      const on = L.steps[ri];
+      if (!on || !on.some(Boolean)) return;
+      out.push('  s("' + on.map(v => (v ? row.snd : '~')).join(' ') + '")' + (row.suffix || '.release(' + L.params.env.toFixed(2) + ')') +
+        '.lpf(' + Math.min(H.cut, Math.round(L.params.lpf)) + ')' + space(H, Math.max(L.params.room, H.room), 0) +
+        '.gain(' + (L.params.gain * 0.6).toFixed(2) + ')');
+    });
+    if (!out.length) return null;
+    return out.length === 1 ? out[0].trim() : 'stack(\n' + out.join(',\n') + '\n)';
+  }
+  function dreamVoice(L, H) {
+    const lines = state.voiceClips.map((c, i) => {
+      if (!c || !L.steps[i].some(Boolean)) return null;
+      return 's("' + L.steps[i].map(on => on ? 'lfvoice_' + c.id : '~').join(' ') + '")' +
+        '.begin(' + (c.start / c.duration).toFixed(6) + ').end(' + (c.end / c.duration).toFixed(6) + ')' +
+        '.speed(' + Math.pow(2, c.pitch / 12).toFixed(6) + ')' +
+        '.gain(' + L.params.gain.toFixed(2) + ').lpf(' + Math.min(H.cut, Math.round(L.params.lpf)) + ')' + space(H, Math.max(L.params.room, H.room * 0.6), 0);
+    }).filter(Boolean);
+    return lines.length ? 'stack(' + lines.join(',\n') + ')' : null;
+  }
+  function dreamLayer(id, H, P) {
+    const d = def(id), L = state.layers[id];
+    if (!d || d.kind === 'pump') return null;
+    if (d.kind === 'voice') return dreamVoice(L, H);
+    if (id === 'drums') return dreamDrums(d, L, H);
+    if (id === 'fx') return dreamFx(d, L, H);
+    if (id === 'bass') return dreamBass(d, L, P);
+    if (id === 'chords') return dreamChords(d, L, H, P);
+    return dreamMelody(d, L, H, DEFS.indexOf(d));
+  }
+  function dreamCode(forPlayback) {
+    const st = state, D = st.dream, H = weather(), P = progChords(), live = [], lines = [];
+    if (!forPlayback && st.voiceClips.some(Boolean)) lines.push('// Voice samples are local to Loop Forge. Export the loop JSON to transfer audio. Load matching samples before using this code elsewhere.');
+    lines.push('// ' + st.keyRoot + ' ' + (majorFamily() ? 'major' : 'dorian') + ' · ' + D.bpm + ' BPM · made in Loop Forge');
+    lines.push('// dream · ' + PROGS[D.prog].name.toLowerCase() + ': ' + P.map(c => c.name).join(' ') + ' · haze ' + D.haze + ' · swing ' + D.swing + '% · wobble ' + D.wobble);
+    lines.push('setcpm(' + D.bpm + '/4)   // ' + D.bpm + ' BPM, one cycle = one bar');
+    lines.push('');
+    for (const d of DEFS) {
+      const c = dreamLayer(d.id, H, P);
+      if (!c) continue;
+      live.push(d.id);
+      lines.push('// ' + d.name);
+      lines.push('const ' + d.id + ' = ' + c);
+      lines.push('');
+    }
+    if (!live.length) return '// tap the grid to make a sound\nsilence';
+    const tape = D.haze >= 70;
+    if (tape) {
+      lines.push('// TAPE HISS');
+      lines.push('const tape = s("pink").attack(0.05).release(0.10).hpf(1800).lpf(5200).gain(' + (0.012 + 0.03 * (D.haze - 70) / 30).toFixed(3) + ')');
+      lines.push('');
+    }
+    // swingBy(x, 8) pushes each off-beat 16th late by x of a 16th.
+    const out = expr => (tape ? 'stack(' + expr + ', tape)' : expr) + (D.swing > 0 ? '.swingBy(' + (D.swing / 100).toFixed(2) + ', 8)' : '');
+    const stackOf = secId => {
+      const on = live.filter(id => st.sections[secId].on[id]);
+      return on.length ? 'stack(' + on.join(', ') + ')' : 'silence';
+    };
+    if (forPlayback && st.mode === 'loop') {
+      lines.push('// looping the ' + st.section + ' section');
+      lines.push(out(stackOf(st.section)));
+      return lines.join('\n');
+    }
+    lines.push('// ── SECTIONS ──');
+    for (const s of SECTIONS) lines.push('const ' + s.id + ' = ' + stackOf(s.id));
+    lines.push('');
+    lines.push('// ── ARRANGEMENT ──');
+    if (st.mode === 'loop') {
+      lines.push('// (looping ' + st.section + ', switch to SONG for the full arrangement)');
+      lines.push(out(st.section));
+    } else {
+      lines.push(out('arrange(' + SECTIONS.map(s => '[' + st.sections[s.id].bars + ', ' + s.id + ']').join(', ') + ')'));
     }
     return lines.join('\n');
   }
@@ -573,6 +849,8 @@
     const p = PRESETS[key];
     commit(st => {
       st.bpm = p.bpm; st.keyRoot = p.keyRoot; st.scaleName = p.scaleName; st.swing = p.swing || 0;
+      // Dream starters switch the lens on; the original starters play as they always have.
+      st.dream = p.dream ? Object.assign({}, st.dream, p.dream, { on: true, bpm: p.bpm }) : Object.assign({}, st.dream, { on: false });
       for (const d of DEFS) if (d.kind !== 'pump') st.layers[d.id].steps = blank(rowCount(d));
       for (const id of Object.keys(p.pat)) setRows(st, id, p.pat[id]);
     });
@@ -635,6 +913,47 @@
       }
     });
     flash(kind === 'swing' ? (state.swing ? 'SWUNG IT' : 'STRAIGHT AGAIN') : kind.toUpperCase(), true);
+  }
+  function toggleDream() {
+    commit(st => {
+      st.dream.on = !st.dream.on;
+      // The seed is rolled once, at the switch, never at playback; links carry it.
+      if (st.dream.on && !st.dream.seed) st.dream.seed = ((Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0) || 1;
+    });
+  }
+  /** Sparse pentatonic phrases: stepwise, clustered, then a breath. */
+  function driftSteps(id, seed, roll) {
+    const r = rng(mix(seed, DEFS.findIndex(x => x.id === id), roll, 11));
+    const sc = dreamScale(id);
+    // Grid degrees that land on pentatonic notes in this layer's locked scale.
+    const pool = sc === 'major pentatonic' ? [0, 1, 2, 3, 4, 5, 6, 7] : sc === 'major' ? [0, 1, 2, 4, 5, 7] : [0, 2, 3, 4, 6, 7];
+    const steps = blank(8);
+    let i = 1 + Math.floor(r() * 3), s = Math.floor(r() * 2) * 2;
+    while (s < 16) {
+      const len = 2 + Math.floor(r() * 3);
+      for (let n = 0; n < len && s < 16; n++) {
+        steps[7 - pool[i]][s] = true;
+        const m = r();
+        i = clamp(i + (m < 0.4 ? 1 : m < 0.8 ? -1 : m < 0.9 ? 2 : -2), 0, pool.length - 1);
+        s += r() < 0.8 ? 2 : 3;
+      }
+      s += 2 + Math.floor(r() * 2) * 2;
+    }
+    return steps;
+  }
+  function drift() {
+    if (!dreamOn()) return;
+    const id = MELODIC.includes(state.sel) ? state.sel : 'lead', d = def(id);
+    const now = JSON.stringify(state.layers[id].steps);
+    const ownRoll = ui.lastDrift && ui.lastDrift.id === id && ui.lastDrift.snap === now;
+    if (!ownRoll && state.layers[id].steps.some(r => r.some(Boolean)) && !confirm('Replace the ' + d.name + ' notes?')) return;
+    commit(st => {
+      st.dream.drift = (st.dream.drift + 1) >>> 0;
+      st.sel = id;
+      st.sections[st.section].on[id] = true;
+      st.layers[id].steps = driftSteps(id, st.dream.seed, st.dream.drift);
+    });
+    ui.lastDrift = { id, snap: JSON.stringify(state.layers[id].steps) };
   }
   function randomizeLayer() {
     const d = def(state.sel);
@@ -705,13 +1024,22 @@
 
   // ── pixel meters (sliders) ──────────────────────────────────────
   function meterSpec(key) {
+    // While dreaming, tempo and swing edit the dream values; the user's own are kept for later.
+    if (key === 'bpm' && dreamOn()) return { label: 'TEMPO', v: state.dream.bpm, rg: DREAM_BPM, color: 'yellow', set: v => { state.dream.bpm = Math.round(v); } };
     if (key === 'bpm') return { label: 'TEMPO', v: state.bpm, rg: BPM_RANGE, color: 'yellow', set: v => { state.bpm = Math.round(v); } };
+    if (key === 'swing' && dreamOn()) return meterSpec('d:swing');
     if (key === 'swing') return { label: 'SWING', v: state.swing, rg: SWING_RANGE, color: 'orange', set: v => { state.swing = v; } };
+    if (key.startsWith('d:')) {
+      const k = key.slice(2);
+      return { label: k.toUpperCase(), v: state.dream[k], rg: DREAM_R[k], color: { haze: 'blue', swing: 'orange', wobble: 'purple' }[k], set: v => { state.dream[k] = Math.round(v); } };
+    }
     const k = key.slice(2), d = def(state.sel), L = state.layers[state.sel];
     return { label: d.labels[k], v: L.params[k], rg: d.ranges[k], color: d.color, set: v => { L.params[k] = v; } };
   }
   function fmt(key, v) {
     if (key === 'bpm') return String(v);
+    if (key === 'd:swing' || (key === 'swing' && dreamOn())) return Math.round(v) + '%';
+    if (key.startsWith('d:')) return String(Math.round(v));
     if (key === 'swing') return Math.round(v * 100) + '%';
     if (key === 'p:lpf') return Math.round(v) + 'hz';
     if (key === 'p:rate') return v + 'x';
@@ -726,7 +1054,7 @@
   function meterHTML(key, extraClass = '') {
     const m = meterSpec(key);
     const frac = (m.v - m.rg[0]) / (m.rg[1] - m.rg[0]);
-    const rotary = key.startsWith('p:');
+    const rotary = /^[pd]:/.test(key);
     return '<div class="meter ' + extraClass + (rotary ? ' rotary' : '') + '" role="slider" tabindex="0" data-meter="' + key + '" style="--c:var(--' + m.color + ');--turn:' + (-135 + frac * 270) + 'deg;--position:' + (frac * 100) + '%"' +
       ' aria-label="' + esc(m.label) + '" aria-valuemin="' + m.rg[0] + '" aria-valuemax="' + m.rg[1] + '" aria-valuenow="' + m.v + '"' +
       ' aria-valuetext="' + esc(fmt(key, m.v)) + '" title="' + (rotary && settings.theme === 'studio' ? 'Drag right or up to increase; left or down to decrease. Hold Shift for fine control' : 'Drag left or right; use arrow keys for fine control') + '">' + segsHTML(frac) + (rotary ? '<span class="dial-face" aria-hidden="true"></span>' : '') + '</div>';
@@ -804,6 +1132,7 @@
     renderKnobs();
     renderArrange();
     renderCode();
+    renderDream();
     renderTransport();
     LFVoice.refresh();
     renderStudio();
@@ -821,7 +1150,7 @@
       const count = DEFS.reduce((n, d) => n + (section.on[d.id] ? state.layers[d.id].steps.filter(row => row[step]).length : 0), 0);
       return '<i style="--level:' + Math.min(100, 8 + count * 10) + '%" data-step="' + step + '"></i>';
     }).join('');
-    $('studio-patch').textContent = state.bpm + ' BPM · ' + state.keyRoot + ' ' + state.scaleName.toUpperCase();
+    $('studio-patch').textContent = bpmNow() + ' BPM · ' + state.keyRoot + ' ' + (dreamOn() ? (majorFamily() ? 'MAJOR' : 'DORIAN') + ' · DREAM' : state.scaleName.toUpperCase());
     paintStudio();
   }
   function paintStudio() {
@@ -851,7 +1180,7 @@
     }).join('');
     const d = def(state.sel);
     $('sel-hint').textContent = d.kind === 'pump' ? (state.pumpOn ? 'SIDECHAIN ON' : 'SIDECHAIN OFF') :
-      d.kind === 'note' ? state.keyRoot + ' ' + state.scaleName.toUpperCase() + ' · 16 STEPS' : 'SOUNDS · 16 STEPS';
+      d.kind === 'note' ? state.keyRoot + ' ' + scaleFor(d).toUpperCase() + ' · 16 STEPS' : 'SOUNDS · 16 STEPS';
   }
 
   function effectivePage() { return narrowMQ.matches ? ui.page : 'all'; }
@@ -904,12 +1233,12 @@
   function renderTempo() {
     const sIdx = SCALE_NAMES.indexOf(state.scaleName);
     $('tempo').innerHTML =
-      '<div class="bpm-row"><div class="bpm-num"><div class="bpm-big" data-readout="bpm">' + state.bpm + '</div><div class="label" style="padding-bottom:6px">BPM</div></div>' +
+      '<div class="bpm-row"><div class="bpm-num"><div class="bpm-big" data-readout="bpm">' + bpmNow() + '</div><div class="label" style="padding-bottom:6px">BPM</div></div>' +
       '<div class="bpm-btns"><button class="btn btn-sq" data-act="bpm" data-arg="-1" aria-label="Slower">−</button>' +
       '<button class="btn btn-sq" data-act="bpm" data-arg="1" aria-label="Faster">+</button>' +
       '<button class="btn btn-pixel" data-act="tap" title="Tap along to set the tempo (T)">TAP</button></div></div>' +
       meterHTML('bpm') +
-      '<div class="slider"><div class="slider-head"><span class="label">SWING</span><span class="readout" data-readout="swing">' + fmt('swing', state.swing) + '</span></div>' + meterHTML('swing', 'sm') + '</div>' +
+      '<div class="slider"><div class="slider-head"><span class="label">SWING</span><span class="readout" data-readout="swing">' + fmt('swing', meterSpec('swing').v) + '</span></div>' + meterHTML('swing', 'sm') + '</div>' +
       '<div class="stack"><div class="label">ROOT NOTE</div><div class="keys">' + KEYS.map(k =>
         '<button class="key" data-act="key" data-arg="' + k + '" aria-pressed="' + (state.keyRoot === k) + '">' + k + '</button>').join('') + '</div></div>' +
       '<div class="stack"><div class="label">SCALE</div><div class="scale">' +
@@ -941,7 +1270,7 @@
   function renderArrange() {
     const cur = state.sections[state.section];
     const total = SECTIONS.reduce((a, s) => a + state.sections[s.id].bars, 0);
-    const secs = Math.round(total * 240 / state.bpm);
+    const secs = Math.round(total * 240 / bpmNow());
     $('arrange').innerHTML =
       '<div class="tabs">' + SECTIONS.map(s => '<button class="tab" data-act="section" data-arg="' + s.id + '" data-sec="' + s.id + '" aria-pressed="' + (state.section === s.id) + '">' + s.name + '</button>').join('') + '</div>' +
       '<div class="timeline" aria-hidden="true">' + SECTIONS.map(s => '<button class="tl-block' + (state.section === s.id ? ' is-sel' : '') + '" tabindex="-1" data-act="section" data-arg="' + s.id + '" data-sec="' + s.id + '" style="flex:' + state.sections[s.id].bars + '">' +
@@ -962,6 +1291,22 @@
     $('code-caret').textContent = ui.showCode ? '▼' : '▶';
     $('code-toggle').setAttribute('aria-expanded', String(ui.showCode));
     if (ui.showCode) $('code').textContent = buildCode(false);
+  }
+
+  function renderDream() {
+    const on = dreamOn();
+    for (const b of $$('[data-dream-btn]')) b.setAttribute('aria-pressed', String(on));
+    for (const b of $$('[data-drift-btn]')) b.hidden = !on;
+    const panel = $('dream');
+    if (!panel) return;
+    panel.hidden = !on;
+    if (!on) return;
+    $('dream-picks').innerHTML = PROG_IDS.map(id => '<button class="tool' + (state.dream.prog === id ? ' is-on' : '') + '" data-act="dream-prog" data-arg="' + id + '" aria-pressed="' + (state.dream.prog === id) + '">' + PROGS[id].name + '</button>').join('');
+    $('dream-knobs').innerHTML = Object.keys(DREAM_R).map(k => {
+      const key = 'd:' + k;
+      return '<div class="slider"><div class="slider-head"><span class="label">' + k.toUpperCase() + '</span><span class="readout" data-readout="' + key + '">' +
+        fmt(key, state.dream[k]) + '</span></div>' + meterHTML(key, 'sm') + '</div>';
+    }).join('');
   }
 
   function renderTransport() {
@@ -1117,6 +1462,7 @@
       '<dt>SHIFT + 1 – 4</dt><dd>Pick a section</dd>' +
       '<dt>M</dt><dd>Toggle loop / song</dd>' +
       '<dt>T</dt><dd>Tap tempo</dd>' +
+      '<dt>D</dt><dd>Dream on / off</dd>' +
       '<dt>CTRL/⌘ + Z</dt><dd>Undo (add Shift to redo)</dd>' +
       '<dt>C</dt><dd>Show / hide the code</dd>' +
       '<dt>← →</dt><dd>Adjust a focused slider</dd>' +
@@ -1208,7 +1554,7 @@
     if (ui.taps.length < 2) return flash('KEEP TAPPING…');
     const gaps = ui.taps.slice(1).map((t, i) => t - ui.taps[i]);
     const bpm = Math.round(clamp(60000 / (gaps.reduce((a, b) => a + b, 0) / gaps.length), BPM_RANGE[0], BPM_RANGE[1]));
-    commit(st => { st.bpm = bpm; }, { coalesce: 'tap' });
+    commit(st => { if (dreamOn()) st.dream.bpm = clamp(bpm, DREAM_BPM[0], DREAM_BPM[1]); else st.bpm = bpm; }, { coalesce: 'tap' });
   }
   const actions = {
     play: () => togglePlay(),
@@ -1253,7 +1599,13 @@
     }, { coalesce: 'shift' }),
     'layer-rand': randomizeLayer,
     page: p => { ui.page = p; renderTools(); renderGrid(); },
-    bpm: delta => commit(st => { st.bpm = clamp(st.bpm + Number(delta), BPM_RANGE[0], BPM_RANGE[1]); }, { coalesce: 'bpm' }),
+    bpm: delta => commit(st => {
+      if (dreamOn()) st.dream.bpm = clamp(st.dream.bpm + Number(delta), DREAM_BPM[0], DREAM_BPM[1]);
+      else st.bpm = clamp(st.bpm + Number(delta), BPM_RANGE[0], BPM_RANGE[1]);
+    }, { coalesce: 'bpm' }),
+    dream: toggleDream,
+    'dream-prog': id => commit(st => { if (PROGS[id]) st.dream.prog = id; }),
+    drift,
     tap: tapTempo,
     setting: arg => {
       const i = arg.indexOf(':'), k = arg.slice(0, i), raw = arg.slice(i + 1);
@@ -1390,6 +1742,7 @@
     const k = e.key.toLowerCase();
     if (k === 'm') actions.mode();
     else if (k === 't') tapTempo();
+    else if (k === 'd') toggleDream();
     else if (k === 'c') actions.code();
     else if (k === '?' || k === 'h') openGuide();
   });
@@ -1446,7 +1799,7 @@
     else if (firstVisit) openGuide('start');
     requestAnimationFrame(tick);
     if (!window.LoopForgeAndroid && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      navigator.serviceWorker.register('sw.js?v=20261029-nav-2', { updateViaCache: 'none' }).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261031-dream', { updateViaCache: 'none' }).catch(() => {});
     }
   }
   boot();

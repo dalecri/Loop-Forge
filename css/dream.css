@@ -1,0 +1,31 @@
+/* Dream Mode controls. New elements only: every colour comes from the active
+   theme's tokens, and no existing rule is changed. */
+.dream-panel[hidden], .drift-btn[hidden] { display: none !important; }
+
+.btn.dream-toggle[aria-pressed="true"] { background: var(--purple); color: var(--on-accent); }
+html[data-theme="studio"] .btn.dream-toggle[aria-pressed="true"] {
+  background: var(--accent) !important; color: var(--on-accent) !important; border-color: var(--accent) !important;
+}
+
+html .dream-panel .dream-body { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.dream-picks { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 280px; }
+.dream-picks .tool { flex: 1 1 0; min-width: 0; padding: 0 8px; }
+html .dream-panel .sliders.dream-knobs { flex: 1 1 300px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+
+html[data-theme="studio"] .dream-panel {
+  .dream-knobs .slider { align-items: center; gap: 8px; }
+  .dream-knobs .slider-head { flex-direction: column; align-items: center; gap: 4px; }
+  .dream-knobs .label { color: var(--soft); }
+  .dream-knobs .readout { color: var(--accent); font-size: 12px; }
+  .dream-knobs .rotary.meter { width: 64px; height: 64px; }
+  .dream-knobs .dial-face::after { top: 5px; height: 11px; transform-origin: 2px 22px; }
+}
+
+/* Phone studio header: Dream and Drift share their own row under the transport. */
+@media (max-width: 760px) {
+  html[data-theme="studio"] .hero-actions .dream-toggle,
+  html[data-theme="studio"] .hero-actions .drift-btn { order: 2; grid-column: span 5; height: 36px; min-height: 36px; }
+  html[data-theme="studio"] .hero-actions .dream-toggle[aria-pressed="false"] { grid-column: span 10; }
+  html .dream-panel .dream-body { gap: 10px; }
+  .dream-picks .tool { padding: 0 4px; font-size: 9px; }
+}

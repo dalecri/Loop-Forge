@@ -1,7 +1,7 @@
 /* Record the Strudel master (including effect returns), never the microphone.
    The engine calls attach whenever panic/replay creates a new master bus. */
 (() => {
-  const VERSION = '20261029-nav-2';
+  const VERSION = '20261031-dream';
   let master, capture, worker, context, blob, url, phase = 'idle', frames = 0;
   let generation = 0, readyReject, readyResolve, timer;
   const loaded = new WeakSet();
