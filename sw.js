@@ -3,7 +3,7 @@
 // This file also replaces the old Loop Forge worker at the same address, so devices
 // that installed Loop Forge switch over to GBX-16. The archived Loop Forge in
 // archive/loop-forge/ registers its own worker for that folder and is left alone here.
-const VERSION = '20261118-v2';
+const VERSION = '20261118-v3';
 const CACHE = 'gbx16-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-512.png'];
 
