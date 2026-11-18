@@ -1,14 +1,16 @@
 {
-  "name": "Loop Forge",
-  "short_name": "Loop Forge",
-  "description": "Tap pixel blocks, get music, steal the Strudel code.",
+  "name": "GBX-16",
+  "short_name": "GBX-16",
+  "description": "Touch-first pad sampler and step sequencer.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#222527",
-  "theme_color": "#222527",
+  "background_color": "#1d1e21",
+  "theme_color": "#1d1e21",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
   ]
 }
