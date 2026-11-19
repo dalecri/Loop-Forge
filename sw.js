@@ -1,10 +1,10 @@
-// GBX-16 service worker: caches the app shell so it opens with no connection.
+// StrudelBox service worker: caches the app shell (network first).
+// Sound needs a connection: the Strudel engine and samples load from their CDNs.
 // Bump VERSION whenever index.html or the icons change.
-// This file also replaces the old Loop Forge worker at the same address, so devices
-// that installed Loop Forge switch over to GBX-16. The archived Loop Forge in
+// This file also replaces the older Loop Forge and GBX-16 workers at the same address. The archived Loop Forge in
 // archive/loop-forge/ registers its own worker for that folder and is left alone here.
-const VERSION = '20261118-v3';
-const CACHE = 'gbx16-' + VERSION;
+const VERSION = '20261118-sb1';
+const CACHE = 'strudelbox-' + VERSION;
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k.startsWith('gbx16-') && k !== CACHE).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => (k.startsWith('gbx16-') || k.startsWith('strudelbox-')) && k !== CACHE).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
