@@ -1,7 +1,7 @@
 {
-  "name": "StrudelBox",
-  "short_name": "StrudelBox",
-  "description": "Groovebox grid that writes and reads live Strudel code.",
+  "name": "GBX-16",
+  "short_name": "GBX-16",
+  "description": "Touch-first pad sampler and step sequencer.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
